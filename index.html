@@ -690,10 +690,11 @@
             <button class="map-btn active" id="btn-layer-alerts" onclick="toggleAlertLayer(this)">⚠️ Alerts</button>
             <button class="map-btn" id="btn-layer-radar" onclick="toggleRadarOnMap(this)">🌧 Radar</button>
             <button class="map-btn" id="btn-layer-counties" onclick="toggleCounties(this)">🗺 Counties</button>
+            <button class="map-btn active" id="btn-map-mode" onclick="toggleMapMode(this)" title="Switch between polygon alerts and all-alerts markers">🗂 Polygons</button>
         </div>
         <div id="alert-count-badge">
             <div class="count" id="map-alert-count">--</div>
-            <div style="font-size:0.62em; color:#556; margin-top:2px;">ACTIVE ALERTS</div>
+            <div style="font-size:0.62em; color:#556; margin-top:2px;" id="map-count-label">ON MAP</div>
         </div>
         <div id="map-legend">
             <div style="font-weight:bold; color:#556; margin-bottom:4px; font-size:0.9em; text-transform:uppercase; letter-spacing:1px;">LEGEND</div>
@@ -760,14 +761,6 @@
             </a>
         </div>
 
-        <div class="section-title" style="margin-top:8px;">🔥 SPC Fire Weather</div>
-        <div class="outlook-label">Day 1 Fire Weather Outlook</div>
-        <div class="outlook-img-wrap">
-            <a href="https://www.spc.noaa.gov/products/fire_wx/fwdy1.html" target="_blank">
-                <img id="fire-img" src="https://www.spc.noaa.gov/products/fire_wx/day1otlk_fire.gif?cb=1" alt="Fire Outlook" style="min-height:120px;">
-            </a>
-        </div>
-
         <div class="section-title" style="margin-top:8px;">🌪 Watches &amp; MDs</div>
         <div class="toolkit-box">
             <div class="toolkit-header">Active SPC Watches</div>
@@ -798,6 +791,9 @@
     </div>
 
 </div>
+
+<!-- ── NWR PANEL BACKDROP ── -->
+<div id="nwr-backdrop" onclick="closeNWRPanel()" style="display:none; position:fixed; inset:0; z-index:1490; background:rgba(0,0,0,0.45);"></div>
 
 <!-- ── NWR FLOATING PANEL ── -->
 <div id="nwr-panel">
@@ -865,20 +861,22 @@
 let nwrDatabase      = [];
 let activeAlerts     = [];
 let alertLayer       = null;
+let allAlertsLayer   = null;
 let radarLayerMap    = null;
 let countiesLayer    = null;
 let radarLayerRadar  = null;
-let radarTimestamps  = [];
-let currentRadarIdx  = 0;
+let radarPaths       = [];    // RainViewer path strings
 let currentAudioUrl  = null;
 let currentCallsign  = null;
 let alertFilterKey   = 'all';
 let alertLayerOn     = true;
 let radarOnMap       = false;
 let countiesOn       = false;
+let mapMode          = 'polygons'; // 'polygons' | 'all'
 let activeSPCDay     = 1;
 let mapInstance      = null;
 let radarInstance    = null;
+let radarInitDone    = false;
 let radarProduct     = 'radar';
 let radarAnimTimer   = null;
 
@@ -922,14 +920,13 @@ function alertColor(event) {
 // ═══════════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
-    initRadarMap();
+    // Radar map is lazy-initialized on first tab switch to avoid Leaflet sizing on hidden div
     loadNWRDatabase();
     loadAlerts();
     loadSPCOutlook(1);
     loadSPCWatches();
     updateSPCCountdown();
 
-    // Auto-refresh alerts every 90 seconds
     setInterval(loadAlerts, 90000);
     setInterval(updateSPCCountdown, 30000);
 });
@@ -943,9 +940,16 @@ function switchTab(name, navEl) {
     document.getElementById(name + '-tab').classList.add('active');
     if (navEl) navEl.classList.add('active');
 
-    // Trigger map resize on reveal
     if (name === 'map' && mapInstance) setTimeout(() => mapInstance.invalidateSize(), 50);
-    if (name === 'radar' && radarInstance) setTimeout(() => radarInstance.invalidateSize(), 50);
+    if (name === 'radar') {
+        // Lazy-init radar map on first visit so Leaflet has a visible div to measure
+        if (!radarInitDone) {
+            radarInitDone = true;
+            initRadarMap();
+        } else if (radarInstance) {
+            setTimeout(() => radarInstance.invalidateSize(), 50);
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1085,12 +1089,20 @@ async function loadAlerts() {
         renderAlertsOnMap();
         renderAlertsList();
         updateAlertBanner();
+
+        const polyCount = activeAlerts.filter(a => a.geometry).length;
+        const total = activeAlerts.length;
         document.getElementById('alerts-meta').textContent =
-            `${activeAlerts.length} active alerts · updated ${new Date().toLocaleTimeString()}`;
-        document.getElementById('map-alert-count').textContent = activeAlerts.length;
+            `${total} active alerts (${polyCount} with polygons) · updated ${new Date().toLocaleTimeString()}`;
+
+        // Map badge shows polygon count when in polygon mode, total otherwise
+        const displayCount = mapMode === 'polygons' ? polyCount : total;
+        document.getElementById('map-alert-count').textContent = displayCount;
+        document.getElementById('map-count-label').textContent = mapMode === 'polygons' ? 'ON MAP' : 'TOTAL';
+
         const badge = document.getElementById('alerts-nav-badge');
-        badge.textContent = activeAlerts.length > 99 ? '99+' : activeAlerts.length;
-        badge.classList.toggle('show', activeAlerts.length > 0);
+        badge.textContent = total > 99 ? '99+' : total;
+        badge.classList.toggle('show', total > 0);
     } catch (e) {
         document.getElementById('alerts-list').innerHTML =
             '<div style="color:#667; text-align:center; padding:30px; font-size:0.85em;">Failed to load alerts. Check connection.</div>';
@@ -1128,32 +1140,83 @@ function renderAlertsOnMap() {
     alertLayer.clearLayers();
     if (!alertLayerOn) return;
 
-    activeAlerts.forEach(feature => {
-        const props = feature.properties;
-        const event = props.event || 'Alert';
-        const color = alertColor(event);
-        const geo   = feature.geometry;
-        if (!geo) return;
+    if (mapMode === 'polygons') {
+        // Only draw alerts that have actual polygon geometry
+        activeAlerts.forEach(feature => {
+            const props = feature.properties;
+            const event = props.event || 'Alert';
+            const color = alertColor(event);
+            const geo   = feature.geometry;
+            if (!geo) return;
 
-        let poly;
-        try {
-            poly = L.geoJSON(geo, {
-                style: {
-                    color:       color,
-                    weight:      2,
-                    opacity:     0.9,
-                    fillColor:   color,
-                    fillOpacity: 0.18,
-                }
+            let poly;
+            try {
+                poly = L.geoJSON(geo, {
+                    style: {
+                        color:       color,
+                        weight:      2,
+                        opacity:     0.9,
+                        fillColor:   color,
+                        fillOpacity: 0.18,
+                    }
+                });
+            } catch(e) { return; }
+
+            poly.on('click', () => handleAlertClick(feature));
+            poly.bindTooltip(`<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`, {
+                sticky: true, className: '', direction: 'top'
             });
-        } catch(e) { return; }
-
-        poly.on('click', () => handleAlertClick(feature));
-        poly.bindTooltip(`<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`, {
-            sticky: true, className: '', direction: 'top'
+            poly.addTo(alertLayer);
         });
-        poly.addTo(alertLayer);
-    });
+    } else {
+        // All-alerts mode: show circle markers for every alert (including non-polygon)
+        activeAlerts.forEach(feature => {
+            const props = feature.properties;
+            const event = props.event || 'Alert';
+            const color = alertColor(event);
+            const geo   = feature.geometry;
+
+            let lat, lon;
+            if (geo) {
+                try {
+                    if (geo.type === 'Polygon') {
+                        lat = geo.coordinates[0].reduce((s,c) => s+c[1], 0) / geo.coordinates[0].length;
+                        lon = geo.coordinates[0].reduce((s,c) => s+c[0], 0) / geo.coordinates[0].length;
+                    } else if (geo.type === 'MultiPolygon') {
+                        lat = geo.coordinates[0][0].reduce((s,c) => s+c[1], 0) / geo.coordinates[0][0].length;
+                        lon = geo.coordinates[0][0].reduce((s,c) => s+c[0], 0) / geo.coordinates[0][0].length;
+                    } else if (geo.type === 'Point') {
+                        lon = geo.coordinates[0]; lat = geo.coordinates[1];
+                    }
+                } catch(e) {}
+            }
+
+            if (!lat || !lon) return; // skip if no usable coords
+
+            const marker = L.circleMarker([lat, lon], {
+                radius: 7, color: color, weight: 2,
+                fillColor: color, fillOpacity: 0.7
+            });
+            marker.on('click', () => handleAlertClick(feature));
+            marker.bindTooltip(`<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`, {
+                sticky: true, direction: 'top'
+            });
+            marker.addTo(alertLayer);
+        });
+    }
+}
+
+function toggleMapMode(btn) {
+    mapMode = mapMode === 'polygons' ? 'all' : 'polygons';
+    btn.textContent = mapMode === 'polygons' ? '🗂 Polygons' : '📍 All';
+    btn.classList.toggle('active', true);
+
+    const polyCount = activeAlerts.filter(a => a.geometry).length;
+    const total = activeAlerts.length;
+    document.getElementById('map-alert-count').textContent = mapMode === 'polygons' ? polyCount : total;
+    document.getElementById('map-count-label').textContent = mapMode === 'polygons' ? 'ON MAP' : 'TOTAL';
+
+    renderAlertsOnMap();
 }
 
 async function handleAlertClick(feature) {
@@ -1201,33 +1264,56 @@ async function handleAlertClick(feature) {
     // Match stations from our database
     let matched = [];
 
+    // Priority 1: official NOAA-suggested callsign from /points API
     if (officialCallsign) {
         const official = nwrDatabase.find(s => s.callsign === officialCallsign);
         if (official) matched.push(official);
     }
 
-    // Also match by state extracted from areaDesc
+    // Priority 2: match by state from areaDesc, max 2 per state to avoid flooding
     const stateMatches = extractStatesFromAreaDesc(areaDesc);
     stateMatches.forEach(st => {
-        nwrDatabase.forEach(s => {
-            if (s.location.endsWith(', ' + st) || s.location.includes(', ' + st + ' ') || s.location.includes(', ' + st + ')')) {
-                if (!matched.find(m => m.callsign === s.callsign)) matched.push(s);
+        let countForState = 0;
+        for (const s of nwrDatabase) {
+            if (countForState >= 2) break;
+            // Match "City, ST" pattern strictly — state must follow a comma+space at end of location
+            const locState = s.location.match(/,\s*([A-Z]{2})(?:\s|$|\))/);
+            if (locState && locState[1] === st && !matched.find(m => m.callsign === s.callsign)) {
+                matched.push(s);
+                countForState++;
             }
-        });
+        }
     });
 
-    // De-dupe and show
+    // Cap at 5 total to keep panel manageable
+    matched = matched.slice(0, 5);
     renderNWRPanel(matched, event, areaDesc);
 }
 
 function extractStatesFromAreaDesc(areaDesc) {
+    // NWS areaDesc format: "County Name, ST; County, ST" or "State Name"
+    // Extract only the 2-letter codes that appear after ", " (county format)
+    // or that are standalone state names matched against known abbreviations
     const stateAbbrs = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS',
         'KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH',
         'OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
-    return stateAbbrs.filter(st => {
-        const re = new RegExp(`\\b${st}\\b`);
-        return re.test(areaDesc);
-    });
+
+    const found = new Set();
+
+    // Match ", ST" pattern (county-level alerts)
+    const countyMatches = areaDesc.matchAll(/,\s*([A-Z]{2})(?:;|$|\s)/g);
+    for (const m of countyMatches) {
+        if (stateAbbrs.includes(m[1])) found.add(m[1]);
+    }
+
+    // If no county matches found, fall back to word-boundary match (state-level alerts)
+    if (found.size === 0) {
+        stateAbbrs.forEach(st => {
+            if (new RegExp(`\\b${st}\\b`).test(areaDesc)) found.add(st);
+        });
+    }
+
+    return [...found];
 }
 
 function renderNWRPanel(stations, event, areaDesc) {
@@ -1326,17 +1412,6 @@ function toggleAlertLayer(btn) {
     else alertLayer.clearLayers();
 }
 
-async function toggleRadarOnMap(btn) {
-    radarOnMap = !radarOnMap;
-    btn.classList.toggle('active', radarOnMap);
-    if (radarOnMap) {
-        await loadRainViewerTimestamps();
-        applyRadarToMap(mapInstance, true);
-    } else {
-        if (radarLayerMap) { mapInstance.removeLayer(radarLayerMap); radarLayerMap = null; }
-    }
-}
-
 async function toggleCounties(btn) {
     countiesOn = !countiesOn;
     btn.classList.toggle('active', countiesOn);
@@ -1345,8 +1420,10 @@ async function toggleCounties(btn) {
             try {
                 const res  = await fetch('https://raw.githubusercontent.com/plotly/datasets/master/geojson-counties-fips.json');
                 const data = await res.json();
+                // interactive: false ensures counties don't block clicks on alert polygons below
                 countiesLayer = L.geoJSON(data, {
-                    style: { color:'#334455', weight:0.5, fillOpacity:0, opacity:0.6 }
+                    style: { color:'#334455', weight:0.5, fillOpacity:0, opacity:0.6 },
+                    interactive: false
                 });
             } catch(e) { btn.classList.remove('active'); countiesOn=false; return; }
         }
@@ -1359,24 +1436,30 @@ async function toggleCounties(btn) {
 // ═══════════════════════════════════════════════════════════════
 // RAINVIEWER RADAR
 // ═══════════════════════════════════════════════════════════════
-async function loadRainViewerTimestamps() {
+async function loadRainViewerPaths() {
     try {
         const res  = await fetch('https://api.rainviewer.com/public/weather-maps.json');
         const data = await res.json();
-        radarTimestamps = (data.radar?.past || []).map(p => p.time);
-        return radarTimestamps;
-    } catch(e) { return []; }
+        // RainViewer returns full path strings like "/v2/radar/1234567890"
+        radarPaths = (data.radar?.past || []).map(p => p.path);
+        return radarPaths;
+    } catch(e) { radarPaths = []; return []; }
+}
+
+function makeRadarLayer(path, opacity) {
+    // Correct RainViewer v2 tile URL: {host}{path}/{size}/{z}/{x}/{y}/{color}/{smooth_snow}.png
+    return L.tileLayer(
+        `https://tilecache.rainviewer.com${path}/512/{z}/{x}/{y}/6/1_1.png`,
+        { tileSize: 512, opacity: opacity || 0.65, zIndex: 300,
+          attribution: '<a href="https://rainviewer.com" target="_blank">RainViewer</a>',
+          crossOrigin: true }
+    );
 }
 
 function applyRadarToMap(mapObj, isMainMap) {
-    const ts = radarTimestamps.slice(-1)[0];
-    if (!ts) return null;
-
-    const layer = L.tileLayer(
-        `https://tilecache.rainviewer.com/v2/radar/${ts}/512/{z}/{x}/{y}/4/1_1.png`,
-        { tileSize: 512, opacity: 0.65, zIndex: 300, attribution: 'RainViewer' }
-    );
-
+    const path = radarPaths.slice(-1)[0];
+    if (!path) return null;
+    const layer = makeRadarLayer(path, 0.65);
     if (isMainMap) {
         if (radarLayerMap) mapObj.removeLayer(radarLayerMap);
         radarLayerMap = layer;
@@ -1385,10 +1468,19 @@ function applyRadarToMap(mapObj, isMainMap) {
         if (radarLayerRadar) mapObj.removeLayer(radarLayerRadar);
         radarLayerRadar = layer;
         layer.addTo(mapObj);
-        document.getElementById('radar-time-badge').textContent =
-            'Radar: ' + new Date(ts * 1000).toLocaleTimeString();
+        updateRadarBadge(path);
     }
     return layer;
+}
+
+function updateRadarBadge(path) {
+    // RainViewer paths look like /v2/radar/1748123456 — timestamp is last segment
+    const parts = path.split('/');
+    const ts = parseInt(parts[parts.length - 1], 10);
+    const badge = document.getElementById('radar-time-badge');
+    if (badge && ts) {
+        badge.textContent = '🌧 Radar · ' + new Date(ts * 1000).toLocaleTimeString();
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1402,28 +1494,26 @@ async function initRadarMap() {
         maxZoom: 19
     }).addTo(radarInstance);
 
-    await loadRainViewerTimestamps();
-    if (radarTimestamps.length) {
+    await loadRainViewerPaths();
+    if (radarPaths.length) {
         applyRadarToMap(radarInstance, false);
         startRadarAnimation();
+    } else {
+        document.getElementById('radar-time-badge').textContent = 'Radar unavailable';
     }
 }
 
 function startRadarAnimation() {
     if (radarAnimTimer) clearInterval(radarAnimTimer);
-    let idx = 0;
-    radarAnimTimer = setInterval(async () => {
-        if (!radarTimestamps.length) return;
-        idx = (idx + 1) % radarTimestamps.length;
-        const ts = radarTimestamps[idx];
+    let idx = radarPaths.length - 1;
+    radarAnimTimer = setInterval(() => {
+        if (!radarPaths.length) return;
+        idx = (idx + 1) % radarPaths.length;
+        const path = radarPaths[idx];
         if (radarLayerRadar) radarInstance.removeLayer(radarLayerRadar);
-        radarLayerRadar = L.tileLayer(
-            `https://tilecache.rainviewer.com/v2/radar/${ts}/512/{z}/{x}/{y}/4/1_1.png`,
-            { tileSize: 512, opacity: 0.65, zIndex: 300, attribution: 'RainViewer' }
-        ).addTo(radarInstance);
-        document.getElementById('radar-time-badge').textContent =
-            'Radar: ' + new Date(ts * 1000).toLocaleTimeString();
-    }, 800);
+        radarLayerRadar = makeRadarLayer(path, 0.65).addTo(radarInstance);
+        updateRadarBadge(path);
+    }, 700);
 }
 
 async function setRadarProduct(product, btn) {
@@ -1435,15 +1525,34 @@ async function setRadarProduct(product, btn) {
     if (radarAnimTimer)  { clearInterval(radarAnimTimer); radarAnimTimer = null; }
 
     if (product === 'radar') {
-        await loadRainViewerTimestamps();
-        if (radarTimestamps.length) { applyRadarToMap(radarInstance, false); startRadarAnimation(); }
+        await loadRainViewerPaths();
+        if (radarPaths.length) { applyRadarToMap(radarInstance, false); startRadarAnimation(); }
+        else { document.getElementById('radar-time-badge').textContent = 'Radar unavailable'; }
     } else {
-        // Satellite — use NOAA GOES East visible composite
-        radarLayerRadar = L.tileLayer(
-            'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/goes_east_vis4km/{z}/{x}/{y}.png?ts=' + Date.now(),
-            { tileSize: 256, opacity: 0.7, zIndex: 300, attribution: 'Iowa State Mesonet' }
+        // Satellite: Iowa Environmental Mesonet GOES East WMS (known working layer)
+        radarLayerRadar = L.tileLayer.wms(
+            'https://mesonet.agron.iastate.edu/cgi-bin/wms/goes/conus_ir.cgi?',
+            {
+                layers: 'goes_conus_ir',
+                format: 'image/png',
+                transparent: true,
+                opacity: 0.75,
+                attribution: 'Iowa Environmental Mesonet',
+                zIndex: 300
+            }
         ).addTo(radarInstance);
-        document.getElementById('radar-time-badge').textContent = 'GOES East Visible · ' + new Date().toLocaleTimeString();
+        document.getElementById('radar-time-badge').textContent = '🛰 GOES IR · ' + new Date().toLocaleTimeString();
+    }
+}
+
+async function toggleRadarOnMap(btn) {
+    radarOnMap = !radarOnMap;
+    btn.classList.toggle('active', radarOnMap);
+    if (radarOnMap) {
+        if (!radarPaths.length) await loadRainViewerPaths();
+        applyRadarToMap(mapInstance, true);
+    } else {
+        if (radarLayerMap) { mapInstance.removeLayer(radarLayerMap); radarLayerMap = null; }
     }
 }
 
@@ -1452,18 +1561,12 @@ async function setRadarProduct(product, btn) {
 // ═══════════════════════════════════════════════════════════════
 function loadSPCOutlook(day) {
     activeSPCDay = day;
-    const imgEl  = document.getElementById('outlook-img');
-    const linkEl = document.getElementById('outlook-link');
-
-    const urls = {
-        1: { img: `https://www.spc.noaa.gov/products/outlook/day1otlk_1200.gif?cb=${Date.now()}`, href: 'https://www.spc.noaa.gov/products/outlook/day1otlk.html' },
-        2: { img: `https://www.spc.noaa.gov/products/outlook/day2otlk_0600.gif?cb=${Date.now()}`, href: 'https://www.spc.noaa.gov/products/outlook/day2otlk.html' },
-        3: { img: `https://www.spc.noaa.gov/products/outlook/day3otlk_0730.gif?cb=${Date.now()}`, href: 'https://www.spc.noaa.gov/products/outlook/day3otlk.html' },
-    };
-
-    const { img, href } = urls[day];
-    imgEl.src    = img;
-    linkEl.href  = href;
+    // Use images.weserv.nl as a CORS proxy — same technique as SkyMonitor
+    const spcPath = `www.spc.noaa.gov/products/outlook/day${day}otlk.png`;
+    document.getElementById('outlook-img').src =
+        `https://images.weserv.nl/?url=${spcPath}&t=${Date.now()}`;
+    document.getElementById('outlook-link').href =
+        `https://www.spc.noaa.gov/products/outlook/day${day}otlk.html`;
     document.getElementById('outlook-label').textContent = `Day ${day} Convective Outlook`;
 }
 
@@ -1530,8 +1633,14 @@ async function loadSPCWatches() {
 // ═══════════════════════════════════════════════════════════════
 // NWR PANEL
 // ═══════════════════════════════════════════════════════════════
-function openNWRPanel()  { document.getElementById('nwr-panel').classList.add('open'); }
-function closeNWRPanel() { document.getElementById('nwr-panel').classList.remove('open'); }
+function openNWRPanel() {
+    document.getElementById('nwr-panel').classList.add('open');
+    document.getElementById('nwr-backdrop').style.display = 'block';
+}
+function closeNWRPanel() {
+    document.getElementById('nwr-panel').classList.remove('open');
+    document.getElementById('nwr-backdrop').style.display = 'none';
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MODAL
