@@ -864,7 +864,7 @@ async function loadAlerts() {
     try {
         // Fetch all active alerts — no event filter, high limit
         const res  = await fetch(
-            'https://api.weather.gov/alerts/active?status=actual&message_type=alert&limit=500',
+            'https://api.weather.gov/alerts/active?status=actual&message_type=alert',
             { headers: { 'User-Agent': 'WeatherControlCenter/1.0 (contact@example.com)' } }
         );
         const data = await res.json();
