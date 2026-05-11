@@ -180,6 +180,7 @@
             <button class="map-btn"         onclick="toggleCounties(this)">🗺 Counties</button>
             <button class="map-btn"         id="radar-cycle-btn" onclick="cycleRadarOnMap(this)">🌧 Radar: Off</button>
             <button class="map-btn"         id="spc-btn" onclick="toggleSPCLayer(this)">⚡ SPC Watch/MD</button>
+            <button class="map-btn"         id="nwr-map-btn" onclick="toggleNWROnMap(this)">📻 NWR: Off</button>
         </div>
         <div id="alert-count-badge">
             <div class="count" id="map-alert-count">–</div>
@@ -345,11 +346,15 @@ let alertFilterKey    = 'all';
 let alertLayerOn      = true;
 let countiesOn        = false;
 let spcLayerOn        = false;
+let nwrMapLayerOn     = false;
+let nwrMapLayer       = null;
 let radarMapState     = 0;
 let mapMode           = 'polygons';
 let nwrPanelFeature   = null;
 let activeSPCDay      = 1;
 let mapInstance       = null;
+let alertsFetching    = false;
+let renderGeneration  = 0;   // increment on every renderAlertsOnMap call
 
 // Caches
 const zoneGeoCache   = {};  // ugcCode -> GeoJSON geometry | null
@@ -437,7 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSPCOutlook(1);
     loadSPCWatches();
     updateSPCCountdown();
-    setInterval(loadAlerts, 90000);
+    setInterval(loadAlerts, 8000);
     setInterval(updateSPCCountdown, 30000);
     setInterval(() => {
         if (radarMapState === 1 && radarLayerMap) {
@@ -570,12 +575,12 @@ function switchOutlookDay(day, btn) {
 // ═══════════════════════════════════════════════════════════
 async function loadNWRDatabase() {
     try {
-        const res = await fetch('./weatherusa_nwr_streams.json');
+        const res = await fetch('./weatherusa_nwr_streams_with_coords.json');
         nwrDatabase = await res.json();
     } catch(e) {
         nwrDatabase = [];
         document.getElementById('nwr-list').innerHTML =
-            '<div style="color:#667; font-size:0.82em; padding:20px; text-align:center;">Could not load NWR database.<br>Place weatherusa_nwr_streams.json in the public folder.</div>';
+            '<div style="color:#667; font-size:0.82em; padding:20px; text-align:center;">Could not load NWR database.<br>Place weatherusa_nwr_streams_with_coords.json in the public folder.</div>';
     }
     initNWRCoverageMap();
     renderNWRList(nwrDatabase);
@@ -712,7 +717,7 @@ function filterNWRList() {
         return matchQ && matchSt;
     });
     renderNWRList(filtered);
-    if (nwrCoverageLayer) renderNWRCoverageMap(filtered);
+    // Coverage map always shows ALL stations; only the list is filtered
 }
 
 function renderNWRList(stations) {
@@ -771,6 +776,8 @@ function stopAudio() {
 // ALERTS — fetch all, follow pagination
 // ═══════════════════════════════════════════════════════════
 async function loadAlerts() {
+    if (alertsFetching) return;   // skip if previous request still in-flight
+    alertsFetching = true;
     showSync();
     try {
         const res  = await fetch(
@@ -805,6 +812,7 @@ async function loadAlerts() {
         document.getElementById('alerts-list').innerHTML =
             '<div style="color:#667; text-align:center; padding:30px; font-size:0.85em;">Failed to load alerts. Check connection.</div>';
     }
+    alertsFetching = false;
     hideSync();
 }
 
@@ -896,6 +904,7 @@ function getBestCoords(feature) {
 //                 actual county/zone polygons fetched from NWS zones API
 // ═══════════════════════════════════════════════════════════
 function renderAlertsOnMap() {
+    const gen = ++renderGeneration;   // any stale async callbacks will see gen !== renderGeneration
     alertLayer.clearLayers();
     if (!alertLayerOn) return;
 
@@ -939,8 +948,8 @@ function renderAlertsOnMap() {
             } else {
                 const ugcCodes = props.geocode?.UGC || [];
                 if (ugcCodes.length > 0) {
-                    // Fetch full county/zone polygons from NWS zones API
-                    renderAlertZones(feature, ugcCodes.slice(0, 12), color);
+                    // Fetch full county/zone polygons from NWS zones API (pass gen to guard stale renders)
+                    renderAlertZones(feature, ugcCodes.slice(0, 12), color, gen);
                 } else {
                     // Absolute last resort — state centroid dot
                     const coords = getBestCoords(feature);
@@ -960,10 +969,12 @@ function renderAlertsOnMap() {
     }
 }
 
-async function renderAlertZones(feature, ugcCodes, color) {
+async function renderAlertZones(feature, ugcCodes, color, gen) {
     const props = feature.properties || {};
     const event = props.event || 'Alert';
     const geos  = await Promise.all(ugcCodes.map(code => fetchZoneGeom(code)));
+    // If a newer render has started, discard results to avoid ghost polygons
+    if (gen !== renderGeneration) return;
     geos.forEach(geo => {
         if (!geo) return;
         try {
@@ -1175,7 +1186,11 @@ function renderAlertsList() {
                 ${canMap ? `<button class="alert-nwr-btn" onclick="showAlertOnMap(${realIdx})">🗺 Show on Map</button>` : ''}
                 <button class="alert-nwr-btn" onclick="toggleAlertText(this)">▼ Full Text</button>
             </div>
-            <div class="alert-full-text">${(p.description || 'No description available.').replace(/</g,'&lt;')}</div>
+            <div class="alert-full-text">${
+                [p.description || 'No description available.',
+                 p.instruction ? '\n\nPRECAUTIONARY/PREPAREDNESS ACTIONS...\n\n' + p.instruction : '']
+                .join('').replace(/</g,'&lt;')
+            }</div>
         </div>`;
     }).join('');
 }
@@ -1365,30 +1380,41 @@ async function loadSPCWatches() {
         }).join('');
     }
 
-    // MDs from SPC GeoJSON
-    try {
-        const res = await fetch('https://www.spc.noaa.gov/products/md/md_active.lyr.geojson');
-        if (res.ok) {
-            const data = await res.json();
-            const mds  = data.features || [];
-            if (!mds.length) {
-                mdEl.textContent = 'No active MDs.';
-            } else {
-                mdEl.innerHTML = mds.map(md => {
-                    const p   = md.properties || {};
-                    const num = p.MNDNUM || p.mndnum || '';
-                    const txt = (p.DISCUSSI || p.text || '').substring(0, 140);
-                    return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-                        <span style="color:var(--warning);font-weight:bold;">MD #${num}</span>
-                        <div style="color:#889;font-size:0.85em;margin-top:3px;">${txt}${txt.length >= 140 ? '…' : ''}</div>
-                    </div>`;
-                }).join('');
+    // MDs — try multiple sources in order (SPC often blocks CORS; IEM is more reliable)
+    const MD_URLS = [
+        'https://www.spc.noaa.gov/products/md/md_active.lyr.geojson',
+        'https://mesonet.agron.iastate.edu/api/1/spcmcd.geojson',
+    ];
+    let mdFeatures = null;
+    for (const url of MD_URLS) {
+        try {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 6000);
+            const res = await fetch(url, { signal: ctrl.signal });
+            clearTimeout(timer);
+            if (res.ok) {
+                const data = await res.json();
+                mdFeatures = data.features || [];
+                break;
             }
-        } else {
-            mdEl.textContent = 'No active MDs.';
-        }
-    } catch(e) {
-        mdEl.textContent = 'No active MDs.';
+        } catch(e) { /* try next URL */ }
+    }
+    if (mdFeatures === null) {
+        mdEl.textContent = 'Could not reach SPC. Try again later.';
+    } else if (!mdFeatures.length) {
+        mdEl.textContent = 'No active Mesoscale Discussions.';
+    } else {
+        mdEl.innerHTML = mdFeatures.map(md => {
+            const p   = md.properties || {};
+            // SPC GeoJSON uses MNDNUM; IEM uses num
+            const num = p.MNDNUM || p.mndnum || p.num || '?';
+            // SPC: DISCUSSI; IEM: product_id or issue
+            const txt = (p.DISCUSSI || p.text || p.product_id || '').substring(0, 180);
+            return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <span style="color:var(--warning);font-weight:bold;">MD #${num}</span>
+                <div style="color:#889;font-size:0.85em;margin-top:3px;">${txt}${txt.length >= 180 ? '…' : ''}</div>
+            </div>`;
+        }).join('');
     }
 }
 
@@ -1402,6 +1428,41 @@ function updateSPCCountdown() {
     const m    = Math.floor((diff % 3600000) / 60000);
     document.getElementById('spc-countdown').textContent =
         `Next SPC issuance: ${h}h ${m}m · ${now.toLocaleTimeString()}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// NWR ON MAIN MAP TOGGLE
+// ═══════════════════════════════════════════════════════════
+function toggleNWROnMap(btn) {
+    nwrMapLayerOn = !nwrMapLayerOn;
+    btn.classList.toggle('active', nwrMapLayerOn);
+    if (!nwrMapLayerOn) {
+        if (nwrMapLayer) { mapInstance.removeLayer(nwrMapLayer); nwrMapLayer = null; }
+        btn.textContent = '📻 NWR: Off';
+        return;
+    }
+    btn.textContent = '📻 NWR: On';
+    renderNWROnMainMap();
+}
+
+function renderNWROnMainMap() {
+    if (nwrMapLayer) { mapInstance.removeLayer(nwrMapLayer); nwrMapLayer = null; }
+    if (!nwrMapLayerOn || !nwrDatabase.length) return;
+    nwrMapLayer = L.layerGroup();
+    nwrDatabase.forEach(s => {
+        const coords = stationCoords(s);
+        if (!coords) return;
+        const marker = L.circleMarker(coords, {
+            radius: 5, color: '#00e676', weight: 1.5, fillColor: '#00e676', fillOpacity: 0.85
+        });
+        marker.bindTooltip(
+            `<b style="color:#00e676">${s.callsign}</b><br><span style="font-size:0.85em;">${s.location}</span>`,
+            { sticky: true, direction: 'top' }
+        );
+        marker.on('click', () => playNWR(s.callsign, s.stream_url, s.location));
+        marker.addTo(nwrMapLayer);
+    });
+    nwrMapLayer.addTo(mapInstance);
 }
 
 // ═══════════════════════════════════════════════════════════
