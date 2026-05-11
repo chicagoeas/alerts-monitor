@@ -12,10 +12,8 @@
     <meta name="apple-mobile-web-app-title" content="WCC">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1779/1779927.png">
     <meta name="description" content="Weather Control Center — Live NWS alerts, NWR radio, radar, and SPC outlooks.">
-
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <style>
         :root {
             --primary: #4fc3f7;
@@ -34,75 +32,15 @@
             color: white;
             overscroll-behavior-y: contain;
         }
-
-        /* HEADER */
-        #header {
-            padding: 14px 20px 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 200;
-            position: relative;
-        }
-        #header h1 {
-            margin: 0;
-            font-weight: 800;
-            font-size: 1.55em;
-            color: var(--accent);
-            letter-spacing: -0.5px;
-            line-height: 1;
-        }
-        #header h1 small {
-            font-size: 0.38em;
-            color: #667;
-            font-weight: 400;
-            display: block;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        #sync-indicator {
-            font-size: 0.62em;
-            font-weight: 900;
-            color: var(--success);
-            background: rgba(0,0,0,0.5);
-            padding: 5px 11px;
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
-            opacity: 0;
-            transition: opacity 0.3s;
-            letter-spacing: 1px;
-        }
+        #header { padding: 14px 20px 10px; display: flex; justify-content: space-between; align-items: center; z-index: 200; position: relative; }
+        #header h1 { margin: 0; font-weight: 800; font-size: 1.55em; color: var(--accent); letter-spacing: -0.5px; line-height: 1; }
+        #header h1 small { font-size: 0.38em; color: #667; font-weight: 400; display: block; letter-spacing: 2px; text-transform: uppercase; }
+        #sync-indicator { font-size: 0.62em; font-weight: 900; color: var(--success); background: rgba(0,0,0,0.5); padding: 5px 11px; border-radius: 20px; backdrop-filter: blur(5px); opacity: 0; transition: opacity 0.3s; letter-spacing: 1px; }
         #sync-indicator.show { opacity: 1; }
-
-        /* ALERT BANNER */
-        #alert-banner {
-            display: none;
-            background: var(--danger);
-            color: white;
-            padding: 12px 20px;
-            font-weight: bold;
-            cursor: pointer;
-            border-bottom: 1px solid rgba(255,255,255,0.2);
-            text-align: center;
-            font-size: 0.88em;
-            letter-spacing: 0.5px;
-            box-shadow: 0 4px 15px rgba(255,23,68,0.4);
-            z-index: 190;
-            position: relative;
-        }
-        @keyframes emergPulse {
-            0%   { background-color: #b71c1c; }
-            50%  { background-color: #ff1744; }
-            100% { background-color: #b71c1c; }
-        }
+        #alert-banner { display: none; background: var(--danger); color: white; padding: 12px 20px; font-weight: bold; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.2); text-align: center; font-size: 0.88em; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(255,23,68,0.4); z-index: 190; position: relative; }
+        @keyframes emergPulse { 0% { background-color: #b71c1c; } 50% { background-color: #ff1744; } 100% { background-color: #b71c1c; } }
         #alert-banner.emergency { animation: emergPulse 1.5s infinite; border: 2px solid white; }
-
-        /* APP */
-        #app {
-            display: flex;
-            flex-direction: column;
-            height: calc(100dvh - 60px);
-        }
+        #app { display: flex; flex-direction: column; height: calc(100dvh - 60px); }
         .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
         .tab-content.active { display: flex; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
@@ -111,128 +49,34 @@
         /* MAP TAB */
         #map-tab { position: relative; }
         #map { width: 100%; flex: 1; }
-        #map-controls {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            z-index: 800;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .map-btn {
-            background: rgba(7,19,29,0.85);
-            border: 1px solid rgba(79,195,247,0.3);
-            color: var(--primary);
-            padding: 7px 12px;
-            border-radius: 8px;
-            font-size: 0.72em;
-            font-weight: bold;
-            cursor: pointer;
-            backdrop-filter: blur(8px);
-            letter-spacing: 0.5px;
-            transition: 0.2s;
-        }
+        #map-controls { position: absolute; top: 12px; left: 12px; z-index: 800; display: flex; flex-direction: column; gap: 6px; }
+        .map-btn { background: rgba(7,19,29,0.85); border: 1px solid rgba(79,195,247,0.3); color: var(--primary); padding: 7px 12px; border-radius: 8px; font-size: 0.72em; font-weight: bold; cursor: pointer; backdrop-filter: blur(8px); letter-spacing: 0.5px; transition: 0.2s; }
         .map-btn:hover { background: rgba(79,195,247,0.15); }
         .map-btn.active { background: rgba(79,195,247,0.25); border-color: var(--primary); }
         .map-btn.sat-active { background: rgba(255,213,79,0.2); border-color: var(--accent); color: var(--accent); }
-        #map-legend {
-            position: absolute;
-            bottom: 30px;
-            left: 12px;
-            z-index: 800;
-            background: rgba(7,19,29,0.88);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 0.67em;
-            backdrop-filter: blur(8px);
-            line-height: 1.8;
-        }
+        #map-legend { position: absolute; bottom: 30px; left: 12px; z-index: 800; background: rgba(7,19,29,0.88); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 14px; font-size: 0.67em; backdrop-filter: blur(8px); line-height: 1.8; }
         .legend-row { display: flex; align-items: center; gap: 7px; }
         .legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-        #alert-count-badge {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            z-index: 800;
-            background: rgba(7,19,29,0.88);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
-            padding: 8px 14px;
-            font-size: 0.72em;
-            font-weight: bold;
-            backdrop-filter: blur(8px);
-            text-align: center;
-        }
+        #alert-count-badge { position: absolute; top: 12px; right: 12px; z-index: 800; background: rgba(7,19,29,0.88); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 14px; font-size: 0.72em; font-weight: bold; backdrop-filter: blur(8px); text-align: center; }
         #alert-count-badge .count { font-size: 1.8em; color: var(--danger); font-weight: 900; }
 
         /* NWR PANEL */
-        #nwr-panel {
-            position: fixed;
-            bottom: 70px; left: 50%;
-            transform: translateX(-50%) translateY(200%);
-            width: min(480px, 95vw);
-            background: #0b1e2d;
-            border: 1px solid rgba(79,195,247,0.3);
-            border-radius: 18px;
-            padding: 18px 20px;
-            z-index: 1500;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.8);
-            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), visibility 0s linear 0.35s;
-            pointer-events: none;
-            visibility: hidden;
-        }
-        #nwr-panel.open {
-            transform: translateX(-50%) translateY(0);
-            pointer-events: auto;
-            visibility: visible;
-            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), visibility 0s linear 0s;
-        }
+        #nwr-panel { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%) translateY(200%); width: min(480px, 95vw); background: #0b1e2d; border: 1px solid rgba(79,195,247,0.3); border-radius: 18px; padding: 18px 20px; z-index: 1500; box-shadow: 0 12px 40px rgba(0,0,0,0.8); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), visibility 0s linear 0.35s; pointer-events: none; visibility: hidden; }
+        #nwr-panel.open { transform: translateX(-50%) translateY(0); pointer-events: auto; visibility: visible; transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), visibility 0s linear 0s; }
         #nwr-panel-close { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #557; cursor: pointer; font-size: 1.2em; }
         #nwr-panel-title { font-weight: 900; font-size: 0.95em; color: var(--accent); margin-bottom: 4px; padding-right: 24px; }
         #nwr-panel-meta { font-size: 0.7em; color: #667; margin-bottom: 14px; font-family: monospace; }
         #nwr-stations-list { display: flex; flex-direction: column; gap: 8px; max-height: 230px; overflow-y: auto; }
-        .nwr-station-card {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 10px;
-            padding: 10px 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+        .nwr-station-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; }
         .nwr-station-card .callsign { font-family: monospace; font-size: 0.95em; font-weight: bold; color: var(--primary); min-width: 68px; }
         .nwr-station-card .loc { flex: 1; font-size: 0.8em; color: #ccc; }
-        .nwr-play-btn {
-            background: var(--primary);
-            color: #07131d;
-            border: none;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.78em;
-            cursor: pointer;
-            white-space: nowrap;
-            transition: 0.2s;
-        }
+        .nwr-play-btn { background: var(--primary); color: #07131d; border: none; padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.78em; cursor: pointer; white-space: nowrap; transition: 0.2s; }
         .nwr-play-btn:hover { background: #81d4fa; }
         .nwr-play-btn.playing { background: var(--success); }
         .nwr-no-match { color: #667; font-size: 0.82em; font-style: italic; padding: 8px 0; text-align: center; }
 
         /* AUDIO BAR */
-        #audio-bar {
-            position: fixed;
-            bottom: 62px; left: 0; right: 0;
-            background: rgba(0,10,20,0.95);
-            border-top: 1px solid rgba(79,195,247,0.2);
-            padding: 8px 16px;
-            z-index: 1400;
-            display: none;
-            align-items: center;
-            gap: 12px;
-            backdrop-filter: blur(12px);
-        }
+        #audio-bar { position: fixed; bottom: 62px; left: 0; right: 0; background: rgba(0,10,20,0.95); border-top: 1px solid rgba(79,195,247,0.2); padding: 8px 16px; z-index: 1400; display: none; align-items: center; gap: 12px; backdrop-filter: blur(12px); }
         #audio-bar.visible { display: flex; }
         #audio-bar-info { flex: 1; }
         #audio-bar-callsign { font-weight: 900; font-size: 0.88em; color: var(--primary); font-family: monospace; }
@@ -244,86 +88,21 @@
         .vu-bar:nth-child(4) { animation-delay: 0.3s; }
         .vu-bar:nth-child(5) { animation-delay: 0.15s; }
         @keyframes vupulse { from { height: 4px; } to { height: 18px; } }
-        #audio-stop-btn {
-            background: rgba(255,23,68,0.2);
-            border: 1px solid var(--danger);
-            color: var(--danger);
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.78em;
-            cursor: pointer;
-        }
+        #audio-stop-btn { background: rgba(255,23,68,0.2); border: 1px solid var(--danger); color: var(--danger); padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.78em; cursor: pointer; }
 
         /* NWR TAB */
         #nwr-tab { overflow-y: auto; padding: 16px; gap: 0; }
-        .section-title {
-            font-weight: bold;
-            font-size: 0.82em;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-        }
-        /* NWR Coverage Map */
-        #nwr-coverage-map-wrap {
-            border-radius: 14px;
-            overflow: hidden;
-            border: 1px solid rgba(79,195,247,0.25);
-            margin-bottom: 14px;
-            height: 200px;
-            position: relative;
-        }
+        .section-title { font-weight: bold; font-size: 0.82em; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+        #nwr-coverage-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 220px; position: relative; }
         #nwr-coverage-map { width: 100%; height: 100%; }
-        #nwr-coverage-label {
-            position: absolute;
-            top: 8px; left: 8px;
-            z-index: 800;
-            background: rgba(7,19,29,0.82);
-            border: 1px solid rgba(79,195,247,0.2);
-            border-radius: 6px;
-            padding: 4px 9px;
-            font-size: 0.64em;
-            font-weight: bold;
-            color: var(--primary);
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            pointer-events: none;
-        }
+        #nwr-coverage-label { position: absolute; top: 8px; left: 8px; z-index: 800; background: rgba(7,19,29,0.82); border: 1px solid rgba(79,195,247,0.2); border-radius: 6px; padding: 4px 9px; font-size: 0.64em; font-weight: bold; color: var(--primary); letter-spacing: 1px; text-transform: uppercase; pointer-events: none; }
         #nwr-search-box { display: flex; gap: 10px; margin-bottom: 16px; }
-        #nwr-search-input {
-            flex: 1;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.12);
-            color: white;
-            padding: 10px 16px;
-            border-radius: 30px;
-            font-size: 0.88em;
-            outline: none;
-        }
+        #nwr-search-input { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: white; padding: 10px 16px; border-radius: 30px; font-size: 0.88em; outline: none; }
         #nwr-search-input:focus { border-color: var(--primary); }
-        #nwr-state-filter {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.12);
-            color: white;
-            padding: 10px 12px;
-            border-radius: 30px;
-            font-size: 0.85em;
-            outline: none;
-            cursor: pointer;
-        }
+        #nwr-state-filter { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: white; padding: 10px 12px; border-radius: 30px; font-size: 0.85em; outline: none; cursor: pointer; }
         #nwr-state-filter option { background: #0b1e2d; }
         #nwr-list { display: flex; flex-direction: column; gap: 6px; }
-        .nwr-full-card {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.07);
-            border-radius: 12px;
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            transition: background 0.2s;
-        }
+        .nwr-full-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 14px; transition: background 0.2s; }
         .nwr-full-card:hover { background: rgba(255,255,255,0.06); }
         .nwr-full-card .callsign { font-family: monospace; font-weight: 900; color: var(--primary); font-size: 0.9em; min-width: 72px; }
         .nwr-full-card .loc { flex: 1; font-size: 0.85em; color: #ccc; }
@@ -331,16 +110,15 @@
 
         /* OUTLOOKS TAB */
         #outlooks-tab { overflow-y: auto; padding: 16px; }
-        .outlook-day-tabs {
-            display: flex; gap: 5px; margin-bottom: 16px;
-            background: rgba(0,0,0,0.3); padding: 5px; border-radius: 10px;
-        }
+        .outlook-day-tabs { display: flex; gap: 5px; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 10px; }
         .otab-btn { flex: 1; padding: 8px; border: none; background: transparent; color: #556; font-size: 0.78em; font-weight: bold; cursor: pointer; border-radius: 7px; transition: 0.2s; }
         .otab-btn.active { background: var(--primary); color: #000; }
-        .outlook-img-wrap { background: #111; border-radius: 14px; border: 1px solid #222; margin-bottom: 14px; line-height: 0; font-size: 0; }
-        .outlook-img-wrap a { display: block; line-height: 0; font-size: 0; }
-        .outlook-img-wrap img { width: 100%; height: auto; display: block; max-width: 100%; border-radius: 14px; }
-        .outlook-label { font-size: 0.72em; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+        #outlook-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 320px; position: relative; }
+        #outlook-map { width: 100%; height: 100%; }
+        #outlook-map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 900; background: rgba(7,19,29,0.9); border-radius: 10px; padding: 14px 20px; font-size: 0.8em; color: var(--primary); text-align: center; }
+        .outlook-label { font-size: 0.72em; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        #outlook-legend { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+        .otlk-chip { display: flex; align-items: center; gap: 5px; font-size: 0.7em; font-weight: bold; padding: 3px 9px; border-radius: 12px; color: #000; }
         #spc-countdown { font-family: monospace; font-size: 0.72em; color: var(--warning); background: rgba(0,0,0,0.4); padding: 4px 10px; border-radius: 6px; display: inline-block; margin-bottom: 14px; }
         .toolkit-box { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); padding: 16px; border-radius: 14px; margin-bottom: 14px; }
         .toolkit-header { font-weight: bold; color: var(--primary); font-size: 0.82em; margin-bottom: 10px; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -365,16 +143,7 @@
         #alerts-meta { font-size: 0.7em; color: #556; font-family: monospace; margin-bottom: 12px; }
 
         /* BOTTOM NAV */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            background: #0b1e2d;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0 12px;
-            border-top: 1px solid rgba(255,255,255,0.08);
-            z-index: 1000;
-        }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #0b1e2d; display: flex; justify-content: space-around; padding: 10px 0 12px; border-top: 1px solid rgba(255,255,255,0.08); z-index: 1000; }
         .nav-item { color: #556; cursor: pointer; display: flex; flex-direction: column; align-items: center; font-size: 1.15em; transition: 0.2s; position: relative; }
         .nav-item span { font-size: 0.44em; text-transform: uppercase; margin-top: 3px; letter-spacing: 0.5px; }
         .nav-item.active { color: var(--primary); }
@@ -387,8 +156,6 @@
         #modal-box { background: #0b1e2d; border: 1px solid rgba(255,255,255,0.1); border-radius: 18px; padding: 22px; width: min(460px, 92vw); max-height: 80vh; overflow-y: auto; }
         #modal-box h3 { margin: 0 0 6px; color: var(--accent); font-size: 1em; }
         #modal-close { float: right; background: none; border: none; color: #445; cursor: pointer; font-size: 1.3em; }
-
-        /* MISC */
         .loading-spinner { text-align: center; padding: 40px; color: #445; font-size: 0.85em; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { width: 24px; height: 24px; border: 3px solid rgba(79,195,247,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; margin-bottom: 8px; }
@@ -432,13 +199,10 @@
     <!-- NWR TAB -->
     <div id="nwr-tab" class="tab-content">
         <div class="section-title">📻 NOAA Weather Radio Stations</div>
-
-        <!-- NWR COVERAGE MAP -->
         <div id="nwr-coverage-map-wrap">
             <div id="nwr-coverage-label">NWR Coverage Map</div>
             <div id="nwr-coverage-map"></div>
         </div>
-
         <div id="nwr-search-box">
             <input type="text" id="nwr-search-input" placeholder="Search callsign or city..." oninput="filterNWRList()">
             <select id="nwr-state-filter" onchange="filterNWRList()">
@@ -446,14 +210,12 @@
             </select>
         </div>
         <div id="nwr-count"></div>
-
         <div class="toolkit-box" style="margin-bottom:14px; padding:12px 16px;">
             <div style="font-size:0.78em; color:#889; line-height:1.6;">
                 <b style="color:var(--primary);">How it works:</b> Click any alert on the MAP tab to automatically find the NWR station(s)
                 covering that alert area. You can also browse and play any station below.
             </div>
         </div>
-
         <div id="nwr-list">
             <div class="loading-spinner"><div class="spinner"></div>Loading stations...</div>
         </div>
@@ -469,10 +231,17 @@
             <button class="otab-btn" onclick="switchOutlookDay(3, this)">Day 3</button>
         </div>
         <div class="outlook-label" id="outlook-label">Day 1 Convective Outlook</div>
-        <div class="outlook-img-wrap">
-            <a id="outlook-link" target="_blank">
-                <img id="outlook-img" src="" alt="SPC Outlook">
-            </a>
+        <div id="outlook-legend">
+            <div class="otlk-chip" style="background:#c1e9c1;">TSTM</div>
+            <div class="otlk-chip" style="background:#66c57d;">MRGL</div>
+            <div class="otlk-chip" style="background:#f6f67a;">SLGT</div>
+            <div class="otlk-chip" style="background:#e8a139;">ENH</div>
+            <div class="otlk-chip" style="background:#e8181b;color:#fff;">MDT</div>
+            <div class="otlk-chip" style="background:#ff00ff;color:#fff;">HIGH</div>
+        </div>
+        <div id="outlook-map-wrap">
+            <div id="outlook-map-loading"><div class="spinner" style="display:inline-block;margin-bottom:6px;"></div><br>Loading outlook...</div>
+            <div id="outlook-map"></div>
         </div>
         <div class="section-title" style="margin-top:8px;">🌪 Watches &amp; MDs</div>
         <div class="toolkit-box">
@@ -507,10 +276,8 @@
 
 </div>
 
-<!-- NWR PANEL BACKDROP -->
 <div id="nwr-backdrop" onclick="closeNWRPanel()" style="display:none; position:fixed; inset:0; z-index:1490; background:rgba(0,0,0,0.45);"></div>
 
-<!-- NWR FLOATING PANEL -->
 <div id="nwr-panel">
     <button id="nwr-panel-close" onclick="closeNWRPanel()">✕</button>
     <div id="nwr-panel-title">NWR Stations for Alert</div>
@@ -519,7 +286,6 @@
     <button id="nwr-view-alert-btn" onclick="viewFullAlert()" style="display:none; margin-top:10px; width:100%; background:rgba(79,195,247,0.12); border:1px solid rgba(79,195,247,0.3); color:var(--primary); padding:8px; border-radius:10px; font-size:0.78em; font-weight:bold; cursor:pointer;">📋 View Full Alert Text</button>
 </div>
 
-<!-- AUDIO BAR -->
 <div id="audio-bar">
     <div class="audio-vu">
         <div class="vu-bar" style="height:6px;"></div>
@@ -535,7 +301,6 @@
     <button id="audio-stop-btn" onclick="stopAudio()">■ STOP</button>
 </div>
 
-<!-- ALERT DETAIL MODAL -->
 <div id="modal-overlay" onclick="closeModal(event)">
     <div id="modal-box">
         <button id="modal-close" onclick="closeModal()">✕</button>
@@ -547,17 +312,10 @@
     </div>
 </div>
 
-<!-- BOTTOM NAV — Radar tab removed -->
 <div class="bottom-nav">
-    <div class="nav-item active" id="nav-map" onclick="switchTab('map', this)">
-        🗺️<span>Map</span>
-    </div>
-    <div class="nav-item" id="nav-nwr" onclick="switchTab('nwr', this)">
-        📻<span>NWR</span>
-    </div>
-    <div class="nav-item" id="nav-outlooks" onclick="switchTab('outlooks', this)">
-        ⚡<span>Outlooks</span>
-    </div>
+    <div class="nav-item active" id="nav-map" onclick="switchTab('map', this)">🗺️<span>Map</span></div>
+    <div class="nav-item" id="nav-nwr" onclick="switchTab('nwr', this)">📻<span>NWR</span></div>
+    <div class="nav-item" id="nav-outlooks" onclick="switchTab('outlooks', this)">⚡<span>Outlooks</span></div>
     <div class="nav-item" id="nav-alerts" onclick="switchTab('alerts', this)">
         ⚠️
         <div class="nav-badge" id="alerts-nav-badge"></div>
@@ -568,29 +326,38 @@
 <audio id="nwr-audio" preload="none"></audio>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════════════════════════
-let nwrDatabase      = [];
-let activeAlerts     = [];
-let alertLayer       = null;
-let radarLayerMap    = null;
-let satelliteLayerMap= null;
-let spcLayer         = null;
-let nwrCoverageMap   = null;
-let nwrCoverageLayer = null;
-let currentAudioUrl  = null;
-let currentCallsign  = null;
-let alertFilterKey   = 'all';
-let alertLayerOn     = true;
-let countiesOn       = false;
-let spcLayerOn       = false;
-// 0=off, 1=radar, 2=satellite
-let radarMapState    = 0;
-let mapMode          = 'polygons';
-let nwrPanelFeature  = null;
-let activeSPCDay     = 1;
-let mapInstance      = null;
+// ═══════════════════════════════════════════════════════════
+let nwrDatabase       = [];
+let activeAlerts      = [];
+let alertLayer        = null;
+let radarLayerMap     = null;
+let satelliteLayerMap = null;
+let spcLayer          = null;
+let nwrCoverageMap    = null;
+let nwrCoverageLayer  = null;
+let outlookMap        = null;
+let outlookLayer      = null;
+let currentAudioUrl   = null;
+let currentCallsign   = null;
+let alertFilterKey    = 'all';
+let alertLayerOn      = true;
+let countiesOn        = false;
+let spcLayerOn        = false;
+let radarMapState     = 0;
+let mapMode           = 'polygons';
+let nwrPanelFeature   = null;
+let activeSPCDay      = 1;
+let mapInstance       = null;
+
+// Caches
+const zoneGeoCache   = {};  // ugcCode -> GeoJSON geometry | null
+const geocodeCache   = {};  // "City, ST" -> [lat, lon] | null
+let   geocodeQueue   = [];
+let   geocodeRunning = false;
+
+const NWS_HEADERS = { 'User-Agent': 'WeatherControlCenter/2.0 (wcc@example.com)' };
 
 const STATE_CENTROIDS = {
     AL:[32.7,-86.7],AK:[64.2,-153.4],AZ:[34.3,-111.1],AR:[34.9,-92.4],
@@ -631,6 +398,17 @@ const ALERT_COLORS = {
     'Areal Flood Advisory':        '#64ffda',
 };
 
+// SPC categorical outlook colors
+const SPC_CAT_COLORS = {
+    TSTM: '#c1e9c1',
+    MRGL: '#66c57d',
+    SLGT: '#f6f67a',
+    ENH:  '#e8a139',
+    MDT:  '#e8181b',
+    HIGH: '#ff00ff',
+};
+const SPC_CAT_ORDER = ['TSTM','MRGL','SLGT','ENH','MDT','HIGH'];
+
 function alertColor(event) {
     if (!event) return '#4fc3f7';
     for (const [key, color] of Object.entries(ALERT_COLORS)) {
@@ -638,30 +416,29 @@ function alertColor(event) {
         if (event.includes(words[0]) && event.includes(words[words.length-1])) return color;
     }
     const ev = event.toLowerCase();
-    if (ev.includes('tornado'))    return '#ff1744';
-    if (ev.includes('thunder'))    return '#ff6d00';
-    if (ev.includes('flood'))      return '#00c853';
-    if (ev.includes('winter'))     return '#aa00ff';
-    if (ev.includes('wind'))       return '#c6ff00';
-    if (ev.includes('watch'))      return '#ffd600';
-    if (ev.includes('warn'))       return '#ff1744';
+    if (ev.includes('tornado'))  return '#ff1744';
+    if (ev.includes('thunder'))  return '#ff6d00';
+    if (ev.includes('flood'))    return '#00c853';
+    if (ev.includes('winter'))   return '#aa00ff';
+    if (ev.includes('wind'))     return '#c6ff00';
+    if (ev.includes('watch'))    return '#ffd600';
+    if (ev.includes('warn'))     return '#ff1744';
     return '#4fc3f7';
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // INIT
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
+    initOutlookMap();
     loadNWRDatabase();
     loadAlerts();
     loadSPCOutlook(1);
     loadSPCWatches();
     updateSPCCountdown();
-
     setInterval(loadAlerts, 90000);
     setInterval(updateSPCCountdown, 30000);
-    // Refresh NEXRAD tiles every 5 min when radar layer is active
     setInterval(() => {
         if (radarMapState === 1 && radarLayerMap) {
             mapInstance.removeLayer(radarLayerMap);
@@ -670,34 +447,127 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 300000);
 });
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // TAB SWITCHING
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function switchTab(name, navEl) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById(name + '-tab').classList.add('active');
     if (navEl) navEl.classList.add('active');
-    if (name === 'map' && mapInstance) setTimeout(() => mapInstance.invalidateSize(), 50);
-    if (name === 'nwr' && nwrCoverageMap)  setTimeout(() => nwrCoverageMap.invalidateSize(), 50);
+    if (name === 'map'      && mapInstance)   setTimeout(() => mapInstance.invalidateSize(), 50);
+    if (name === 'nwr'      && nwrCoverageMap) setTimeout(() => nwrCoverageMap.invalidateSize(), 50);
+    if (name === 'outlooks' && outlookMap)    setTimeout(() => outlookMap.invalidateSize(), 50);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MAP INIT
-// ════════════════════rn�══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// MAIN MAP INIT
+// ═══════════════════════════════════════════════════════════
 function initMap() {
     mapInstance = L.map('map', { zoomControl: true, attributionControl: true }).setView([38.5, -96.5], 4);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-        maxZoom: 19
+        attribution: '&copy; OpenStreetMap contributors &copy; CARTO', maxZoom: 19
     }).addTo(mapInstance);
     alertLayer = L.layerGroup().addTo(mapInstance);
     spcLayer   = L.layerGroup().addTo(mapInstance);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// NWR DATABASE + COVERAGE MAP
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// OUTLOOK MAP — interactive Leaflet map with SPC GeoJSON
+// ═══════════════════════════════════════════════════════════
+function initOutlookMap() {
+    outlookMap = L.map('outlook-map', { zoomControl: true, attributionControl: false }).setView([38.5, -96.5], 4);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        maxZoom: 10
+    }).addTo(outlookMap);
+    outlookLayer = L.layerGroup().addTo(outlookMap);
+}
+
+function loadSPCOutlook(day) {
+    activeSPCDay = day;
+    document.getElementById('outlook-label').textContent = `Day ${day} Convective Outlook`;
+
+    const loadingEl = document.getElementById('outlook-map-loading');
+    loadingEl.style.display = 'block';
+    if (outlookLayer) outlookLayer.clearLayers();
+
+    // SPC serves these GeoJSON files with CORS headers
+    const url = `https://www.spc.noaa.gov/products/outlook/day${day}otlk_cat.lyr.geojson`;
+
+    fetch(url)
+        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(data => {
+            loadingEl.style.display = 'none';
+            const features = data.features || [];
+            if (!features.length) { showOutlookFallbackNote(day); return; }
+
+            // Draw lower risk categories first so higher-risk draw on top
+            const sorted = [...features].sort((a, b) => {
+                const aLabel = getOutlookLabel(a);
+                const bLabel = getOutlookLabel(b);
+                return SPC_CAT_ORDER.indexOf(aLabel) - SPC_CAT_ORDER.indexOf(bLabel);
+            });
+
+            sorted.forEach(feature => {
+                const label = getOutlookLabel(feature);
+                const color = SPC_CAT_COLORS[label] || '#4fc3f7';
+                try {
+                    const layer = L.geoJSON(feature, {
+                        style: { color, weight: 1.5, opacity: 0.9, fillColor: color, fillOpacity: 0.38 }
+                    });
+                    layer.bindTooltip(
+                        `<b style="color:#111;">${label}</b>`,
+                        { sticky: true, direction: 'top' }
+                    );
+                    layer.addTo(outlookLayer);
+                } catch(e) {}
+            });
+
+            try {
+                const bounds = L.geoJSON(data).getBounds();
+                if (bounds.isValid()) outlookMap.fitBounds(bounds, { padding: [10, 10] });
+            } catch(e) {}
+        })
+        .catch(() => {
+            loadingEl.style.display = 'none';
+            showOutlookFallbackNote(day);
+        });
+}
+
+function getOutlookLabel(feature) {
+    const p = feature.properties || {};
+    // SPC GeoJSON uses LABEL or dn field for the category
+    const raw = (p.LABEL || p.dn || p.LABEL2 || '').toString().trim().toUpperCase();
+    // Match known categories
+    for (const cat of SPC_CAT_ORDER) { if (raw.includes(cat)) return cat; }
+    // Numeric dn mapping (SPC uses 3=TSTM, 4=MRGL, 5=SLGT, 6=ENH, 7=MDT, 8=HIGH)
+    const dnMap = { '3':'TSTM','4':'MRGL','5':'SLGT','6':'ENH','7':'MDT','8':'HIGH' };
+    if (dnMap[raw]) return dnMap[raw];
+    return raw || 'TSTM';
+}
+
+function showOutlookFallbackNote(day) {
+    // Add a small info box inside the map
+    const ctrl = L.control({ position: 'bottomright' });
+    ctrl.onAdd = () => {
+        const d = L.DomUtil.create('div');
+        d.style.cssText = 'background:rgba(7,19,29,0.9);color:#4fc3f7;padding:8px 12px;border-radius:8px;font-size:0.72em;pointer-events:auto;';
+        d.innerHTML = `No data. <a href="https://www.spc.noaa.gov/products/outlook/day${day}otlk.html" target="_blank" style="color:#ffd54f;">View on SPC ↗</a>`;
+        return d;
+    };
+    ctrl.addTo(outlookMap);
+}
+
+function switchOutlookDay(day, btn) {
+    document.querySelectorAll('.otab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadSPCOutlook(day);
+    if (outlookMap) setTimeout(() => outlookMap.invalidateSize(), 50);
+}
+
+// ═══════════════════════════════════════════════════════════
+// NWR DATABASE + COVERAGE MAP with real city geocoding
+// ═══════════════════════════════════════════════════════════
 async function loadNWRDatabase() {
     try {
         const res = await fetch('./weatherusa_nwr_streams.json');
@@ -705,26 +575,85 @@ async function loadNWRDatabase() {
     } catch(e) {
         nwrDatabase = [];
         document.getElementById('nwr-list').innerHTML =
-            '<div style="color:#667; font-size:0.82em; padding:20px; text-align:center;">Could not load NWR database.<br>Make sure weatherusa_nwr_streams.json is in the public folder.</div>';
+            '<div style="color:#667; font-size:0.82em; padding:20px; text-align:center;">Could not load NWR database.<br>Place weatherusa_nwr_streams.json in the public folder.</div>';
     }
     initNWRCoverageMap();
     renderNWRList(nwrDatabase);
     populateStateFilter();
+    // Kick off background city geocoding (rate-limited to Nominatim's 1 req/sec policy)
+    enqueueNWRGeocode(nwrDatabase);
 }
 
-// Return [lat, lon] for a station, using explicit coords or state-centroid fallback
-function stationCoords(station) {
-    if (station.lat != null && station.lon != null) {
-        return [+station.lat, +station.lon];
+// Extract "City, ST" from a location string
+function parseCityState(location) {
+    const m = (location || '').match(/^(.+?),\s*([A-Z]{2})(?:\s|$|\()/);
+    return m ? `${m[1].trim()}, ${m[2]}` : null;
+}
+
+function enqueueNWRGeocode(stations) {
+    stations.forEach(s => {
+        if (s.lat != null && s.lon != null) return; // already has precise coords
+        const key = parseCityState(s.location);
+        if (key && geocodeCache[key] === undefined) {
+            geocodeCache[key] = null; // mark as queued
+            geocodeQueue.push({ station: s, key });
+        }
+    });
+    if (!geocodeRunning) drainGeocodeQueue();
+}
+
+async function drainGeocodeQueue() {
+    geocodeRunning = true;
+    while (geocodeQueue.length > 0) {
+        const { station, key } = geocodeQueue.shift();
+        if (geocodeCache[key] && geocodeCache[key] !== null) {
+            applyGeocodedCoords(station, geocodeCache[key]);
+            continue;
+        }
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(key)}&countrycodes=us&format=json&limit=1`;
+            const res  = await fetch(url, {
+                headers: { 'Accept-Language': 'en', 'User-Agent': 'WeatherControlCenter/2.0' }
+            });
+            const data = await res.json();
+            if (data && data.length > 0) {
+                const coords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                geocodeCache[key] = coords;
+                applyGeocodedCoords(station, coords);
+            }
+        } catch(e) {}
+        // 1.1 s between requests to stay within Nominatim's usage policy
+        await new Promise(r => setTimeout(r, 1100));
     }
-    const loc = station.location || '';
-    // Match ", ST" at end or before parenthesis/semicolon
-    const m = loc.match(/,\s*([A-Z]{2})(?:\s*[\(\);]|$)/);
+    geocodeRunning = false;
+}
+
+function applyGeocodedCoords(station, coords) {
+    station._geocodedLat = coords[0];
+    station._geocodedLon = coords[1];
+    // Add a precise marker to the NWR coverage map
+    if (!nwrCoverageLayer) return;
+    const marker = L.circleMarker(coords, {
+        radius: 5, color: '#4fc3f7', weight: 1.5, fillColor: '#4fc3f7', fillOpacity: 0.9
+    });
+    marker.bindTooltip(
+        `<b style="color:#4fc3f7">${station.callsign}</b><br><span style="font-size:0.85em;">${station.location}</span>`,
+        { sticky: true, direction: 'top' }
+    );
+    marker.on('click', () => playNWR(station.callsign, station.stream_url, station.location));
+    marker.addTo(nwrCoverageLayer);
+}
+
+// Return best coordinates for a station
+function stationCoords(station) {
+    if (station.lat != null && station.lon != null) return [+station.lat, +station.lon];
+    if (station._geocodedLat != null) return [station._geocodedLat, station._geocodedLon];
+    // State centroid fallback with small deterministic jitter
+    const m = (station.location || '').match(/,\s*([A-Z]{2})(?:\s*[\(\);]|$)/);
     if (m && STATE_CENTROIDS[m[1]]) {
-        const [baseLat, baseLon] = STATE_CENTROIDS[m[1]];
-        // Small pseudo-random jitter so stations in same state spread slightly
+        const [bLat, bLon] = STATE_CENTROIDS[m[1]];
         const seed = station.callsign.charCodeAt(0) + (station.callsign.charCodeAt(2) || 0);
-        return [baseLat + (seed % 7 - 3) * 0.6, baseLon + ((seed * 3) % 9 - 4) * 0.7];
+        return [bLat + (seed % 7 - 3) * 0.6, bLon + ((seed * 3) % 9 - 4) * 0.7];
     }
     return null;
 }
@@ -732,16 +661,10 @@ function stationCoords(station) {
 function initNWRCoverageMap() {
     if (nwrCoverageMap) return;
     nwrCoverageMap = L.map('nwr-coverage-map', {
-        zoomControl: false,
-        attributionControl: false,
-        scrollWheelZoom: false,
-        dragging: true,
-        touchZoom: true,
-        doubleClickZoom: false,
+        zoomControl: false, attributionControl: false,
+        scrollWheelZoom: false, dragging: true, touchZoom: true, doubleClickZoom: false,
     }).setView([39, -96], 3);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OSM &copy; CARTO', maxZoom: 8
-    }).addTo(nwrCoverageMap);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 8 }).addTo(nwrCoverageMap);
     nwrCoverageLayer = L.layerGroup().addTo(nwrCoverageMap);
     renderNWRCoverageMap(nwrDatabase);
 }
@@ -752,12 +675,11 @@ function renderNWRCoverageMap(stations) {
     stations.forEach(s => {
         const coords = stationCoords(s);
         if (!coords) return;
+        const precise = (s.lat != null) || (s._geocodedLat != null);
         const marker = L.circleMarker(coords, {
-            radius: 4,
-            color: '#4fc3f7',
-            weight: 1,
-            fillColor: '#4fc3f7',
-            fillOpacity: 0.75
+            radius: precise ? 5 : 4,
+            color: '#4fc3f7', weight: 1,
+            fillColor: '#4fc3f7', fillOpacity: precise ? 0.9 : 0.5,
         });
         marker.bindTooltip(
             `<b style="color:#4fc3f7">${s.callsign}</b><br><span style="font-size:0.85em;">${s.location}</span>`,
@@ -785,63 +707,52 @@ function filterNWRList() {
     const q     = document.getElementById('nwr-search-input').value.toLowerCase();
     const state = document.getElementById('nwr-state-filter').value;
     const filtered = nwrDatabase.filter(s => {
-        const matchQ = !q || s.callsign.toLowerCase().includes(q) || s.location.toLowerCase().includes(q);
-        const matchS = !state || s.location.includes(', ' + state);
-        return matchQ && matchS;
+        const matchQ  = !q || s.callsign.toLowerCase().includes(q) || s.location.toLowerCase().includes(q);
+        const matchSt = !state || s.location.includes(`, ${state}`);
+        return matchQ && matchSt;
     });
     renderNWRList(filtered);
-    renderNWRCoverageMap(filtered);
+    if (nwrCoverageLayer) renderNWRCoverageMap(filtered);
 }
 
 function renderNWRList(stations) {
-    const list = document.getElementById('nwr-list');
-    document.getElementById('nwr-count').textContent =
-        `${stations.length} station${stations.length !== 1 ? 's' : ''}`;
-
+    document.getElementById('nwr-count').textContent = `${stations.length} station${stations.length !== 1 ? 's' : ''}`;
+    const listEl = document.getElementById('nwr-list');
     if (!stations.length) {
-        list.innerHTML = '<div style="color:#667; font-size:0.82em; padding:20px; text-align:center;">No stations match your search.</div>';
+        listEl.innerHTML = '<div class="nwr-no-match">No stations match your search.</div>';
         return;
     }
-
-    list.innerHTML = stations.map(s => `
+    listEl.innerHTML = stations.map(s => `
         <div class="nwr-full-card">
             <div class="callsign">${s.callsign}</div>
             <div class="loc">${s.location}</div>
-            <button class="nwr-play-btn" onclick="playNWR('${escHtml(s.callsign)}', '${escHtml(s.stream_url)}', '${escHtml(s.location)}')">
-                ▶ Listen
-            </button>
+            <button class="nwr-play-btn" onclick="playNWR('${escHtml(s.callsign)}','${escHtml(s.stream_url)}','${escHtml(s.location)}')">▶ Listen</button>
         </div>
     `).join('');
 }
 
-// ═══════════════════════════════════════════════════════════════
-// AUDIO PLAYBACK
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════════════════════
 function playNWR(callsign, url, location) {
     const audio = document.getElementById('nwr-audio');
-    if (currentAudioUrl === url && !audio.paused) { stopAudio(); return; }
-
-    currentAudioUrl = url;
-    currentCallsign = callsign;
+    if (currentCallsign === callsign) { stopAudio(); return; }
+    currentCallsign = callsign; currentAudioUrl = url;
     audio.src = url;
     audio.play().catch(() => {});
-
     document.getElementById('audio-bar-callsign').textContent = callsign;
     document.getElementById('audio-bar-loc').textContent = location;
     document.getElementById('audio-bar').classList.add('visible');
-
     document.querySelectorAll('.nwr-play-btn').forEach(btn => {
         btn.classList.remove('playing');
         if (btn.textContent.includes('Stop')) btn.textContent = '▶ Listen';
     });
     document.querySelectorAll(`.nwr-play-btn[onclick*="${callsign}"]`).forEach(btn => {
-        btn.classList.add('playing');
-        btn.textContent = '■ Stop';
+        btn.classList.add('playing'); btn.textContent = '■ Stop';
     });
     document.querySelectorAll('.nwr-panel-play-btn').forEach(btn => btn.classList.remove('playing'));
     document.querySelectorAll(`.nwr-panel-play-btn[data-callsign="${callsign}"]`).forEach(btn => {
-        btn.classList.add('playing');
-        btn.textContent = '■ Stop';
+        btn.classList.add('playing'); btn.textContent = '■ Stop';
     });
 }
 
@@ -856,31 +767,27 @@ function stopAudio() {
     });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// ALERTS — fetch ALL, paginate if needed
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// ALERTS — fetch all, follow pagination
+// ═══════════════════════════════════════════════════════════
 async function loadAlerts() {
     showSync();
     try {
-        // Fetch all active alerts — no event filter, high limit
         const res  = await fetch(
             'https://api.weather.gov/alerts/active?status=actual&message_type=alert',
-            { headers: { 'User-Agent': 'WeatherControlCenter/1.0 (contact@example.com)' } }
+            { headers: NWS_HEADERS }
         );
         const data = await res.json();
         activeAlerts = data.features || [];
-
-        // Follow pagination links if present
         let nextUrl = data.pagination?.next;
         while (nextUrl) {
             try {
-                const r2 = await fetch(nextUrl, { headers: { 'User-Agent': 'WeatherControlCenter/1.0' } });
+                const r2 = await fetch(nextUrl, { headers: NWS_HEADERS });
                 const d2 = await r2.json();
                 activeAlerts = activeAlerts.concat(d2.features || []);
                 nextUrl = d2.pagination?.next;
             } catch(e) { break; }
         }
-
         renderAlertsOnMap();
         renderAlertsList();
         updateAlertBanner();
@@ -889,11 +796,8 @@ async function loadAlerts() {
         const total     = activeAlerts.length;
         document.getElementById('alerts-meta').textContent =
             `${total} active alerts (${polyCount} with polygons) · updated ${new Date().toLocaleTimeString()}`;
-
-        const displayCount = mapMode === 'polygons' ? polyCount : total;
-        document.getElementById('map-alert-count').textContent = displayCount;
-        document.getElementById('map-count-label').textContent = mapMode === 'polygons' ? 'ON MAP' : 'TOTAL';
-
+        document.getElementById('map-alert-count').textContent = mapMode === 'polygons' ? polyCount : total;
+        document.getElementById('map-count-label').textContent = mapMode === 'polygons' ? 'ON MAP' : 'ALL';
         const badge = document.getElementById('alerts-nav-badge');
         badge.textContent = total > 99 ? '99+' : total;
         badge.classList.toggle('show', total > 0);
@@ -909,151 +813,188 @@ function updateAlertBanner() {
     const hasAlerts = activeAlerts.length > 0;
     banner.style.display = hasAlerts ? 'block' : 'none';
     if (!hasAlerts) return;
-
     const hasTorWarn  = activeAlerts.some(a => a.properties?.event?.includes('Tornado Warning'));
     const hasTorWatch = activeAlerts.some(a => a.properties?.event?.includes('Tornado Watch'));
-
     if (hasTorWarn) {
         banner.className = 'emergency';
         banner.textContent = `🌪 TORNADO WARNING IN EFFECT · ${activeAlerts.length} ACTIVE ALERTS`;
     } else if (hasTorWatch) {
-        banner.className = '';
-        banner.style.background = '#ffd600'; banner.style.color = '#000';
+        banner.className = ''; banner.style.background = '#ffd600'; banner.style.color = '#000';
         banner.textContent = `⚡ TORNADO WATCH IN EFFECT · ${activeAlerts.length} ACTIVE ALERTS`;
     } else {
-        banner.className = '';
-        banner.style.background = ''; banner.style.color = 'white';
+        banner.className = ''; banner.style.background = ''; banner.style.color = 'white';
         banner.textContent = `⚠️ ${activeAlerts.length} ACTIVE NWS ALERTS — TAP TO VIEW`;
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// COORDINATE FINDER — improved "All" mode
-// Tries geometry → state regex (multiple patterns) → senderName
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// NWS ZONE GEOMETRY — fetch + cache county/forecast zone polygons
+// UGC code format: {ST}{C|Z|F}{NNN}  e.g. ALC001=county, ALZ001=forecast
+// ═══════════════════════════════════════════════════════════
+function ugcToZoneUrl(code) {
+    const t = code.charAt(2).toUpperCase();
+    if (t === 'C') return `https://api.weather.gov/zones/county/${code}`;
+    if (t === 'F') return `https://api.weather.gov/zones/fire/${code}`;
+    return `https://api.weather.gov/zones/forecast/${code}`;
+}
+
+async function fetchZoneGeom(code) {
+    if (Object.prototype.hasOwnProperty.call(zoneGeoCache, code)) return zoneGeoCache[code];
+    try {
+        const res  = await fetch(ugcToZoneUrl(code), { headers: NWS_HEADERS });
+        if (!res.ok) { zoneGeoCache[code] = null; return null; }
+        const data = await res.json();
+        const geo  = data.geometry || null;
+        zoneGeoCache[code] = geo;
+        return geo;
+    } catch(e) { zoneGeoCache[code] = null; return null; }
+}
+
+function geomCentroid(geo) {
+    try {
+        if (!geo) return null;
+        if (geo.type === 'Point') return [geo.coordinates[1], geo.coordinates[0]];
+        let ring;
+        if (geo.type === 'Polygon') ring = geo.coordinates[0];
+        else if (geo.type === 'MultiPolygon') ring = geo.coordinates[0][0];
+        if (!ring || !ring.length) return null;
+        const lat = ring.reduce((s, c) => s + c[1], 0) / ring.length;
+        const lon = ring.reduce((s, c) => s + c[0], 0) / ring.length;
+        return [lat, lon];
+    } catch(e) { return null; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// BEST COORDS (centroid fallback for alerts without geometry)
+// ═══════════════════════════════════════════════════════════
 function getBestCoords(feature) {
     const geo   = feature.geometry;
     const props = feature.properties || {};
-    let lat, lon, hasGeo = false;
-
     if (geo) {
-        try {
-            if (geo.type === 'Polygon') {
-                lat = geo.coordinates[0].reduce((s,c) => s+c[1], 0) / geo.coordinates[0].length;
-                lon = geo.coordinates[0].reduce((s,c) => s+c[0], 0) / geo.coordinates[0].length;
-                hasGeo = true;
-            } else if (geo.type === 'MultiPolygon') {
-                lat = geo.coordinates[0][0].reduce((s,c) => s+c[1], 0) / geo.coordinates[0][0].length;
-                lon = geo.coordinates[0][0].reduce((s,c) => s+c[0], 0) / geo.coordinates[0][0].length;
-                hasGeo = true;
-            } else if (geo.type === 'Point') {
-                lon = geo.coordinates[0]; lat = geo.coordinates[1];
-                hasGeo = true;
-            }
-        } catch(e) {}
+        const c = geomCentroid(geo);
+        if (c) return { lat: c[0], lon: c[1], hasGeo: true };
     }
-
-    if (hasGeo && lat && lon) return { lat, lon, hasGeo: true };
-
-    // Try to extract a US state/territory code from areaDesc
     const areaDesc = props.areaDesc || '';
-
-    // Pattern 1: ", ST" before semicolon or end
     let m = areaDesc.match(/,\s*([A-Z]{2})(?:[;,\s]|$)/);
     if (m && STATE_CENTROIDS[m[1]]) return { lat: STATE_CENTROIDS[m[1]][0], lon: STATE_CENTROIDS[m[1]][1], hasGeo: false };
-
-    // Pattern 2: NWS zone codes like "NMZ028", "AKC001"
     const zoneMatch = areaDesc.match(/\b([A-Z]{2})[CZ]\d{3}\b/);
     if (zoneMatch && STATE_CENTROIDS[zoneMatch[1]]) return { lat: STATE_CENTROIDS[zoneMatch[1]][0], lon: STATE_CENTROIDS[zoneMatch[1]][1], hasGeo: false };
-
-    // Pattern 3: any two-letter all-caps word that is a known state
-    const twoLetterWords = areaDesc.match(/\b[A-Z]{2}\b/g) || [];
-    for (const code of twoLetterWords) {
+    for (const code of (areaDesc.match(/\b[A-Z]{2}\b/g) || [])) {
         if (STATE_CENTROIDS[code]) return { lat: STATE_CENTROIDS[code][0], lon: STATE_CENTROIDS[code][1], hasGeo: false };
     }
-
-    // Pattern 4: senderName (e.g. "NWS New Orleans LA")
     const sender = props.senderName || '';
-    const senderWords = sender.match(/\b[A-Z]{2}\b/g) || [];
-    for (const code of senderWords) {
+    for (const code of (sender.match(/\b[A-Z]{2}\b/g) || [])) {
         if (STATE_CENTROIDS[code]) return { lat: STATE_CENTROIDS[code][0], lon: STATE_CENTROIDS[code][1], hasGeo: false };
     }
-
-    return null; // truly un-locatable
+    return null;
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // RENDER ALERTS ON MAP
-// ═══════════════════════════════════════════════════════════════
+// Polygon mode  → only alerts with polygon geometry, drawn as polygons
+// All mode      → polygon alerts as polygons + non-polygon alerts as
+//                 actual county/zone polygons fetched from NWS zones API
+// ═══════════════════════════════════════════════════════════
 function renderAlertsOnMap() {
     alertLayer.clearLayers();
     if (!alertLayerOn) return;
 
     if (mapMode === 'polygons') {
-        // Show polygon-geometry alerts as filled shapes
         activeAlerts.forEach(feature => {
-            const props = feature.properties;
-            const event = props.event || 'Alert';
+            if (!feature.geometry) return;
+            const event = feature.properties.event || 'Alert';
             const color = alertColor(event);
-            const geo   = feature.geometry;
-            if (!geo) return;
-
-            let poly;
             try {
-                poly = L.geoJSON(geo, {
+                const poly = L.geoJSON(feature.geometry, {
                     style: { color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.18 }
                 });
-            } catch(e) { return; }
-
-            poly.on('click', () => handleAlertClick(feature));
-            poly.bindTooltip(
-                `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`,
-                { sticky: true, direction: 'top' }
-            );
-            poly.addTo(alertLayer);
+                poly.on('click', () => handleAlertClick(feature));
+                poly.bindTooltip(
+                    `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${feature.properties.areaDesc || ''}</span>`,
+                    { sticky: true, direction: 'top' }
+                );
+                poly.addTo(alertLayer);
+            } catch(e) {}
         });
     } else {
-        // "All" mode: place a marker for EVERY alert using best available coords
+        // "All" mode — draw everything
         activeAlerts.forEach(feature => {
-            const props  = feature.properties;
-            const event  = props.event || 'Alert';
-            const color  = alertColor(event);
-            const coords = getBestCoords(feature);
-            if (!coords) return; // truly un-locatable
+            const props = feature.properties || {};
+            const event = props.event || 'Alert';
+            const color = alertColor(event);
 
-            const marker = L.circleMarker([coords.lat, coords.lon], {
-                radius:      coords.hasGeo ? 7 : 9,
-                color,
-                weight:      coords.hasGeo ? 2 : 1.5,
-                fillColor:   color,
-                fillOpacity: coords.hasGeo ? 0.7 : 0.35,
-                dashArray:   coords.hasGeo ? null : '4 3',
-            });
-            marker.on('click', () => handleAlertClick(feature));
-            marker.bindTooltip(
-                `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`,
-                { sticky: true, direction: 'top' }
-            );
-            marker.addTo(alertLayer);
+            if (feature.geometry) {
+                // Has a polygon already — draw it
+                try {
+                    const poly = L.geoJSON(feature.geometry, {
+                        style: { color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.18 }
+                    });
+                    poly.on('click', () => handleAlertClick(feature));
+                    poly.bindTooltip(
+                        `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`,
+                        { sticky: true, direction: 'top' }
+                    );
+                    poly.addTo(alertLayer);
+                } catch(e) {}
+            } else {
+                const ugcCodes = props.geocode?.UGC || [];
+                if (ugcCodes.length > 0) {
+                    // Fetch full county/zone polygons from NWS zones API
+                    renderAlertZones(feature, ugcCodes.slice(0, 12), color);
+                } else {
+                    // Absolute last resort — state centroid dot
+                    const coords = getBestCoords(feature);
+                    if (!coords) return;
+                    const marker = L.circleMarker([coords.lat, coords.lon], {
+                        radius: 8, color, weight: 1.5, fillColor: color, fillOpacity: 0.35, dashArray: '4 3'
+                    });
+                    marker.on('click', () => handleAlertClick(feature));
+                    marker.bindTooltip(
+                        `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`,
+                        { sticky: true, direction: 'top' }
+                    );
+                    marker.addTo(alertLayer);
+                }
+            }
         });
     }
 }
 
+async function renderAlertZones(feature, ugcCodes, color) {
+    const props = feature.properties || {};
+    const event = props.event || 'Alert';
+    const geos  = await Promise.all(ugcCodes.map(code => fetchZoneGeom(code)));
+    geos.forEach(geo => {
+        if (!geo) return;
+        try {
+            const layer = L.geoJSON(geo, {
+                style: { color, weight: 1.5, opacity: 0.9, fillColor: color, fillOpacity: 0.22, dashArray: '5 3' }
+            });
+            layer.on('click', () => handleAlertClick(feature));
+            layer.bindTooltip(
+                `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`,
+                { sticky: true, direction: 'top' }
+            );
+            layer.addTo(alertLayer);
+        } catch(e) {}
+    });
+}
+
 function toggleMapMode(btn) {
     mapMode = mapMode === 'polygons' ? 'all' : 'polygons';
-    btn.textContent = mapMode === 'polygons' ? '🗂 Polygons' : '📍 All';
-    btn.classList.toggle('active', true);
-
+    btn.textContent = mapMode === 'polygons' ? '🗂 Polygons' : '🌐 All';
+    btn.classList.add('active');
     const polyCount = activeAlerts.filter(a => a.geometry).length;
     const total     = activeAlerts.length;
     document.getElementById('map-alert-count').textContent = mapMode === 'polygons' ? polyCount : total;
-    document.getElementById('map-count-label').textContent = mapMode === 'polygons' ? 'ON MAP' : 'TOTAL';
+    document.getElementById('map-count-label').textContent = mapMode === 'polygons' ? 'ON MAP' : 'ALL';
     renderAlertsOnMap();
 }
 
-// ═══════════════════════════════════════════════════════════════
-// NWR MATCHING
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// NWR MATCHING — works for polygon AND non-polygon alerts
+// For non-polygon alerts: fetch zone centroids, use them for NWR lookup
+// ═══════════════════════════════════════════════════════════
 function samplePolygonPoints(geometry) {
     const points = [];
     if (!geometry) return points;
@@ -1063,12 +1004,11 @@ function samplePolygonPoints(geometry) {
         else if (geometry.type === 'MultiPolygon') ring = geometry.coordinates[0][0];
         else if (geometry.type === 'Point') return [[geometry.coordinates[1], geometry.coordinates[0]]];
         if (!ring || ring.length < 3) return points;
-        const centLat = ring.reduce((s,c) => s+c[1], 0) / ring.length;
-        const centLon = ring.reduce((s,c) => s+c[0], 0) / ring.length;
+        const centLat = ring.reduce((s, c) => s + c[1], 0) / ring.length;
+        const centLon = ring.reduce((s, c) => s + c[0], 0) / ring.length;
         points.push([centLat, centLon]);
-        const verts = ring.length - 1;
-        const step  = Math.max(1, Math.floor(verts / 29));
-        for (let i = 0; i < verts && points.length < 30; i += step) {
+        const step = Math.max(1, Math.floor((ring.length - 1) / 29));
+        for (let i = 0; i < ring.length - 1 && points.length < 30; i += step) {
             const [lon, lat] = ring[i];
             if (lat >= 17 && lat <= 72 && lon >= -180 && lon <= -60) points.push([lat, lon]);
         }
@@ -1076,11 +1016,27 @@ function samplePolygonPoints(geometry) {
     return points;
 }
 
+async function getSamplePoints(feature) {
+    if (feature.geometry) return samplePolygonPoints(feature.geometry);
+
+    // Non-polygon: use UGC zone centroids
+    const ugcCodes = feature.properties?.geocode?.UGC || [];
+    if (ugcCodes.length > 0) {
+        const geos   = await Promise.all(ugcCodes.slice(0, 8).map(code => fetchZoneGeom(code)));
+        const points = geos.map(g => geomCentroid(g)).filter(Boolean);
+        if (points.length) return points;
+    }
+
+    // Final fallback
+    const coords = getBestCoords(feature);
+    return coords ? [[coords.lat, coords.lon]] : [];
+}
+
 async function fetchNWRTransmitter(lat, lon) {
     try {
         const res = await fetch(
             `https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`,
-            { headers: { 'User-Agent': 'WeatherControlCenter/1.0' } }
+            { headers: NWS_HEADERS }
         );
         if (!res.ok) return null;
         const data = await res.json();
@@ -1089,10 +1045,9 @@ async function fetchNWRTransmitter(lat, lon) {
 }
 
 async function handleAlertClick(feature) {
-    const props    = feature.properties;
+    const props    = feature.properties || {};
     const event    = props.event || 'Alert';
     const areaDesc = props.areaDesc || '';
-
     nwrPanelFeature = feature;
     document.getElementById('nwr-panel-title').textContent = event;
     document.getElementById('nwr-panel-meta').textContent  = areaDesc;
@@ -1101,7 +1056,7 @@ async function handleAlertClick(feature) {
     document.getElementById('nwr-view-alert-btn').style.display = 'block';
     openNWRPanel();
 
-    const samplePoints = samplePolygonPoints(feature.geometry);
+    const samplePoints = await getSamplePoints(feature);
     const transmitters = new Set();
     const results = await Promise.all(samplePoints.map(([lat, lon]) => fetchNWRTransmitter(lat, lon)));
     results.forEach(tx => { if (tx) transmitters.add(tx.toUpperCase()); });
@@ -1132,25 +1087,42 @@ function scrollToAlertFeature(feature) {
     }
 }
 
-function showAlertOnMap(realIdx) {
+async function showAlertOnMap(realIdx) {
     const feature = activeAlerts[realIdx];
     if (!feature) return;
     switchTab('map', document.getElementById('nav-map'));
-    setTimeout(() => {
-        if (feature.geometry) {
+    await new Promise(r => setTimeout(r, 120));
+
+    if (feature.geometry) {
+        try {
+            const b = L.geoJSON(feature.geometry).getBounds();
+            mapInstance.fitBounds(b, { padding: [40, 40], maxZoom: 9 });
+        } catch(e) {}
+        return;
+    }
+
+    // Non-polygon: fetch zone geometries and fit map to them
+    const ugcCodes = feature.properties?.geocode?.UGC || [];
+    if (ugcCodes.length > 0) {
+        const geos = await Promise.all(ugcCodes.slice(0, 6).map(code => fetchZoneGeom(code)));
+        const valid = geos.filter(Boolean);
+        if (valid.length) {
             try {
-                const geo = L.geoJSON(feature.geometry);
-                mapInstance.fitBounds(geo.getBounds(), { padding: [40, 40], maxZoom: 9 });
+                const fc = { type: 'FeatureCollection', features: valid.map(g => ({ type: 'Feature', geometry: g, properties: {} })) };
+                const b  = L.geoJSON(fc).getBounds();
+                if (b.isValid()) { mapInstance.fitBounds(b, { padding: [40, 40], maxZoom: 9 }); return; }
             } catch(e) {}
         }
-    }, 100);
+    }
+    const coords = getBestCoords(feature);
+    if (coords) mapInstance.setView([coords.lat, coords.lon], 7);
 }
 
 function renderNWRPanel(stations, event, areaDesc) {
     const list = document.getElementById('nwr-stations-list');
     if (!stations.length) {
-        list.innerHTML = `<div class="nwr-no-match">No NWR streams found in database for this alert area.<br><br>
-            <span style="font-size:0.85em;">Try browsing the <b style="color:var(--primary)">NWR tab</b> manually.</span></div>`;
+        list.innerHTML = `<div class="nwr-no-match">No NWR streams found for this area.<br><br>
+            <span style="font-size:0.85em;">Browse the <b style="color:var(--primary)">NWR tab</b> manually.</span></div>`;
         return;
     }
     list.innerHTML = stations.map(s => `
@@ -1158,9 +1130,7 @@ function renderNWRPanel(stations, event, areaDesc) {
             <div class="callsign">${s.callsign}</div>
             <div class="loc">${s.location}</div>
             <button class="nwr-play-btn nwr-panel-play-btn" data-callsign="${s.callsign}"
-                onclick="playNWR('${escHtml(s.callsign)}','${escHtml(s.stream_url)}','${escHtml(s.location)}')">
-                ▶ Listen
-            </button>
+                onclick="playNWR('${escHtml(s.callsign)}','${escHtml(s.stream_url)}','${escHtml(s.location)}')">▶ Listen</button>
         </div>
     `).join('');
 }
@@ -1169,7 +1139,6 @@ function renderAlertsList() {
     const list   = document.getElementById('alerts-list');
     const searchQ = (document.getElementById('alerts-search-input')?.value || '').toLowerCase().trim();
     let filtered  = activeAlerts;
-
     if (alertFilterKey !== 'all') {
         filtered = filtered.filter(a =>
             (a.properties?.event || '').toLowerCase().includes(alertFilterKey.toLowerCase())
@@ -1183,29 +1152,27 @@ function renderAlertsList() {
                    (p.description || '').toLowerCase().includes(searchQ);
         });
     }
-
     if (!filtered.length) {
         list.innerHTML = '<div style="text-align:center;padding:40px;color:#667;font-size:0.85em;">No alerts matching this filter.</div>';
         return;
     }
-
     list.innerHTML = filtered.map(a => {
         const realIdx = activeAlerts.indexOf(a);
-        const p       = a.properties;
+        const p       = a.properties || {};
         const event   = p.event || 'Alert';
         const color   = alertColor(event);
         const expires = p.expires ? new Date(p.expires).toLocaleString() : 'Unknown';
-        const hasMap  = !!a.geometry;
+        const canMap  = !!a.geometry || (p.geocode?.UGC?.length > 0);
         return `
         <div class="alert-card-full" id="alert-card-${realIdx}" style="border-left-color:${color};">
             <div class="event-name" style="color:${color};">${event}</div>
             <div class="area-desc">${p.areaDesc || ''}</div>
             <div class="alert-expires">Expires: ${expires}</div>
             <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
-                <button class="alert-nwr-btn" onclick="switchTab('map',document.getElementById('nav-map')); setTimeout(()=>handleAlertClick(activeAlerts[${realIdx}]),120);">
+                <button class="alert-nwr-btn" onclick="switchTab('map',document.getElementById('nav-map')); setTimeout(()=>handleAlertClick(activeAlerts[${realIdx}]),150);">
                     📻 Find NWR
                 </button>
-                ${hasMap ? `<button class="alert-nwr-btn" onclick="showAlertOnMap(${realIdx})">🗺 Show on Map</button>` : ''}
+                ${canMap ? `<button class="alert-nwr-btn" onclick="showAlertOnMap(${realIdx})">🗺 Show on Map</button>` : ''}
                 <button class="alert-nwr-btn" onclick="toggleAlertText(this)">▼ Full Text</button>
             </div>
             <div class="alert-full-text">${(p.description || 'No description available.').replace(/</g,'&lt;')}</div>
@@ -1227,9 +1194,9 @@ function setAlertFilter(key, el) {
     renderAlertsList();
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // MAP LAYER TOGGLES
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function toggleAlertLayer(btn) {
     alertLayerOn = !alertLayerOn;
     btn.classList.toggle('active', alertLayerOn);
@@ -1257,76 +1224,56 @@ async function toggleCounties(btn) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// RADAR — 3-STATE CYCLE: off → radar → satellite
-// ═══════════════════════════════════════════════════════════════
 function makeRadarLayer() {
     return L.tileLayer(IEM_NEXRAD_URL, {
         opacity: 0.65, zIndex: 300,
-        attribution: '<a href="https://mesonet.agron.iastate.edu" target="_blank">Iowa Environmental Mesonet</a>',
+        attribution: '<a href="https://mesonet.agron.iastate.edu" target="_blank">Iowa Mesonet</a>',
         tileSize: 256, crossOrigin: true,
     });
 }
-
 function makeSatLayer() {
     return L.tileLayer.wms(IEM_SAT_WMS, {
-        layers: 'goes_conus_ir',
-        format: 'image/png',
-        transparent: true,
-        opacity: 0.75,
-        attribution: 'Iowa Environmental Mesonet',
-        zIndex: 300
+        layers: 'goes_conus_ir', format: 'image/png', transparent: true, opacity: 0.75,
+        attribution: 'Iowa Mesonet', zIndex: 300
     });
 }
-
 function cycleRadarOnMap(btn) {
-    // Remove whatever is active
     if (radarLayerMap)     { mapInstance.removeLayer(radarLayerMap);     radarLayerMap     = null; }
     if (satelliteLayerMap) { mapInstance.removeLayer(satelliteLayerMap); satelliteLayerMap = null; }
-
-    // Advance state: 0→1→2→0
     radarMapState = (radarMapState + 1) % 3;
-
     btn.classList.remove('active', 'sat-active');
-
-    if (radarMapState === 0) {
-        btn.textContent = '🌧 Radar: Off';
-    } else if (radarMapState === 1) {
-        radarLayerMap = makeRadarLayer().addTo(mapInstance);
-        btn.textContent = '🌧 Radar: On';
-        btn.classList.add('active');
-    } else {
-        satelliteLayerMap = makeSatLayer().addTo(mapInstance);
-        btn.textContent = '🛰 Satellite: On';
-        btn.classList.add('sat-active');
-    }
+    if (radarMapState === 0)      { btn.textContent = '🌧 Radar: Off'; }
+    else if (radarMapState === 1) { radarLayerMap = makeRadarLayer().addTo(mapInstance); btn.textContent = '🌧 Radar: On'; btn.classList.add('active'); }
+    else                          { satelliteLayerMap = makeSatLayer().addTo(mapInstance); btn.textContent = '🛰 Satellite: On'; btn.classList.add('sat-active'); }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SPC WATCHES/MDs ON MAP (toggleable)
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
+// SPC WATCHES/MDs ON MAP
+// Watches: sourced directly from activeAlerts (correct data, no bad URL)
+// MDs:     fetched from SPC's own GeoJSON endpoint (not NWS API — NWS
+//          does not expose MDs as alert events)
+// ═══════════════════════════════════════════════════════════
 async function toggleSPCLayer(btn) {
     spcLayerOn = !spcLayerOn;
     btn.classList.toggle('active', spcLayerOn);
-
     spcLayer.clearLayers();
     if (!spcLayerOn) return;
 
-    // SPC Watches — from NWS alerts API
-    try {
-        const res = await fetch(
-            'https://api.weather.gov/alerts/active?event=Tornado+Watch,Severe+Thunderstorm+Watch&status=actual&message_type=alert',
-            { headers: { 'User-Agent': 'WeatherControlCenter/1.0' } }
-        );
-        const data = await res.json();
-        (data.features || []).forEach(feature => {
-            const geo   = feature.geometry;
-            const event = feature.properties?.event || 'Watch';
-            const color = alertColor(event);
-            if (!geo) return;
+    // ── WATCHES: filter from already-loaded alerts ──────────────────────
+    const watchAlerts = activeAlerts.filter(a =>
+        ['Tornado Watch', 'Severe Thunderstorm Watch'].some(ev =>
+            (a.properties?.event || '').includes(ev)
+        )
+    );
+
+    for (const feature of watchAlerts) {
+        const event = feature.properties?.event || 'Watch';
+        const color = alertColor(event);
+
+        if (feature.geometry) {
             try {
-                const layer = L.geoJSON(geo, {
-                    style: { color, weight: 3, opacity: 1, fillColor: color, fillOpacity: 0.1, dashArray: '10 5' }
+                const layer = L.geoJSON(feature.geometry, {
+                    style: { color, weight: 3, opacity: 1, fillColor: color, fillOpacity: 0.12, dashArray: '10 5' }
                 });
                 layer.on('click', () => handleAlertClick(feature));
                 layer.bindTooltip(
@@ -1335,61 +1282,114 @@ async function toggleSPCLayer(btn) {
                 );
                 layer.addTo(spcLayer);
             } catch(e) {}
-        });
-    } catch(e) {}
+        } else {
+            // Non-polygon watch — draw county zones
+            const ugcCodes = feature.properties?.geocode?.UGC || [];
+            if (ugcCodes.length > 0) {
+                const geos = await Promise.all(ugcCodes.slice(0, 12).map(code => fetchZoneGeom(code)));
+                geos.forEach(geo => {
+                    if (!geo) return;
+                    try {
+                        const layer = L.geoJSON(geo, {
+                            style: { color, weight: 3, opacity: 1, fillColor: color, fillOpacity: 0.12, dashArray: '10 5' }
+                        });
+                        layer.on('click', () => handleAlertClick(feature));
+                        layer.bindTooltip(
+                            `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${feature.properties?.areaDesc || ''}</span>`,
+                            { sticky: true, direction: 'top' }
+                        );
+                        layer.addTo(spcLayer);
+                    } catch(e) {}
+                });
+            }
+        }
+    }
 
-    // MDs — try NWS alerts; SPC MDs may not always appear here
+    // ── MDs: fetch directly from SPC GeoJSON (has CORS headers) ────────
+    // SPC publishes this file and updates it in real-time
     try {
-        const res = await fetch(
-            'https://api.weather.gov/alerts/active?event=Mesoscale+Discussion&status=actual',
-            { headers: { 'User-Agent': 'WeatherControlCenter/1.0' } }
-        );
-        const data = await res.json();
-        (data.features || []).forEach(feature => {
-            const geo   = feature.geometry;
-            const props = feature.properties || {};
-            if (geo) {
+        const res = await fetch('https://www.spc.noaa.gov/products/md/md_active.lyr.geojson');
+        if (res.ok) {
+            const data = await res.json();
+            (data.features || []).forEach(feature => {
+                const geo   = feature.geometry;
+                const props = feature.properties || {};
+                const num   = props.MNDNUM || props.mndnum || '';
+                const label = `MD #${num}`;
+                if (!geo) return;
                 try {
                     const layer = L.geoJSON(geo, {
-                        style: { color:'#ff9800', weight: 2, opacity: 0.9, fillColor:'#ff9800', fillOpacity: 0.08, dashArray:'5 4' }
+                        style: { color: '#ff9800', weight: 2.5, opacity: 0.95, fillColor: '#ff9800', fillOpacity: 0.1, dashArray: '6 4' }
                     });
                     layer.bindTooltip(
-                        `<b>Mesoscale Discussion</b><br><span style="font-size:0.85em;color:#aaa;">${props.headline || props.areaDesc || ''}</span>`,
+                        `<b style="color:#ff9800;">${label}</b>`,
                         { sticky: true, direction: 'top' }
                     );
                     layer.addTo(spcLayer);
                 } catch(e) {}
+            });
+        }
+    } catch(e) {
+        // SPC endpoint not reachable — silently skip MD layer
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// SPC WATCHES / MDs SIDEBAR (Outlooks tab)
+// ═══════════════════════════════════════════════════════════
+async function loadSPCWatches() {
+    const watchesEl = document.getElementById('spc-watches-list');
+    const mdEl      = document.getElementById('spc-md-list');
+
+    // Watches from activeAlerts (populated by loadAlerts)
+    // Use a small retry loop in case alerts haven't loaded yet
+    let attempts = 0;
+    while (activeAlerts.length === 0 && attempts < 8) {
+        await new Promise(r => setTimeout(r, 500));
+        attempts++;
+    }
+    const watches = activeAlerts.filter(a =>
+        ['Tornado Watch', 'Severe Thunderstorm Watch'].some(ev =>
+            (a.properties?.event || '').includes(ev)
+        )
+    );
+    if (!watches.length) {
+        watchesEl.textContent = 'No active watches.';
+    } else {
+        watchesEl.innerHTML = watches.map(w => {
+            const p = w.properties || {};
+            return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <span style="color:${alertColor(p.event)};font-weight:bold;">${p.event}</span>
+                <div style="color:#889;font-size:0.85em;margin-top:3px;">${p.areaDesc || ''}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // MDs from SPC GeoJSON
+    try {
+        const res = await fetch('https://www.spc.noaa.gov/products/md/md_active.lyr.geojson');
+        if (res.ok) {
+            const data = await res.json();
+            const mds  = data.features || [];
+            if (!mds.length) {
+                mdEl.textContent = 'No active MDs.';
             } else {
-                const coords = getBestCoords(feature);
-                if (!coords) return;
-                L.circleMarker([coords.lat, coords.lon], {
-                    radius: 14, color: '#ff9800', weight: 2, fillColor:'#ff9800', fillOpacity: 0.15, dashArray: '5 4'
-                }).bindTooltip(
-                    `<b>Mesoscale Discussion</b><br><span style="font-size:0.85em;color:#aaa;">${props.headline || props.areaDesc || ''}</span>`,
-                    { sticky: true, direction: 'top' }
-                ).addTo(spcLayer);
+                mdEl.innerHTML = mds.map(md => {
+                    const p   = md.properties || {};
+                    const num = p.MNDNUM || p.mndnum || '';
+                    const txt = (p.DISCUSSI || p.text || '').substring(0, 140);
+                    return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                        <span style="color:var(--warning);font-weight:bold;">MD #${num}</span>
+                        <div style="color:#889;font-size:0.85em;margin-top:3px;">${txt}${txt.length >= 140 ? '…' : ''}</div>
+                    </div>`;
+                }).join('');
             }
-        });
-    } catch(e) {}
-}
-
-// ═══════════════════════════════════════════════════════════════
-// SPC OUTLOOKS
-// ═══════════════════════════════════════════════════════════════
-function loadSPCOutlook(day) {
-    activeSPCDay = day;
-    const spcPath = `www.spc.noaa.gov/products/outlook/day${day}otlk.png`;
-    document.getElementById('outlook-img').src =
-        `https://images.weserv.nl/?url=${spcPath}&t=${Date.now()}`;
-    document.getElementById('outlook-link').href =
-        `https://www.spc.noaa.gov/products/outlook/day${day}otlk.html`;
-    document.getElementById('outlook-label').textContent = `Day ${day} Convective Outlook`;
-}
-
-function switchOutlookDay(day, btn) {
-    document.querySelectorAll('.otab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    loadSPCOutlook(day);
+        } else {
+            mdEl.textContent = 'No active MDs.';
+        }
+    } catch(e) {
+        mdEl.textContent = 'No active MDs.';
+    }
 }
 
 function updateSPCCountdown() {
@@ -1404,53 +1404,9 @@ function updateSPCCountdown() {
         `Next SPC issuance: ${h}h ${m}m · ${now.toLocaleTimeString()}`;
 }
 
-async function loadSPCWatches() {
-    // Watches
-    try {
-        const res  = await fetch(
-            'https://api.weather.gov/alerts/active?event=Tornado+Watch,Severe+Thunderstorm+Watch&status=actual',
-            { headers: { 'User-Agent': 'WeatherControlCenter/1.0' } }
-        );
-        const data = await res.json();
-        const watches = data.features || [];
-        const watchesEl = document.getElementById('spc-watches-list');
-        if (!watches.length) { watchesEl.textContent = 'No active watches.'; }
-        else {
-            watchesEl.innerHTML = watches.map(w => {
-                const p = w.properties;
-                return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-                    <span style="color:${alertColor(p.event)};font-weight:bold;">${p.event}</span>
-                    <div style="color:#889;font-size:0.85em;margin-top:3px;">${p.areaDesc || ''}</div>
-                </div>`;
-            }).join('');
-        }
-    } catch(e) { document.getElementById('spc-watches-list').textContent = 'Failed to load.'; }
-
-    // MDs
-    try {
-        const res = await fetch(
-            'https://api.weather.gov/alerts/active?event=Mesoscale+Discussion&status=actual',
-            { headers: { 'User-Agent': 'WeatherControlCenter/1.0' } }
-        );
-        const data = await res.json();
-        const mds  = data.features || [];
-        const mdEl = document.getElementById('spc-md-list');
-        if (!mds.length) { mdEl.textContent = 'No active MDs.'; }
-        else {
-            mdEl.innerHTML = mds.map(md => {
-                const p = md.properties;
-                return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-                    <span style="color:var(--warning);font-weight:bold;">MD</span> ${p.headline || p.event}
-                    <div style="color:#889;font-size:0.85em;">${p.areaDesc || ''}</div>
-                </div>`;
-            }).join('');
-        }
-    } catch(e) { document.getElementById('spc-md-list').textContent = 'Failed to load.'; }
-}
-
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // NWR PANEL
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function openNWRPanel() {
     document.getElementById('nwr-panel').classList.add('open');
     document.getElementById('nwr-backdrop').style.display = 'block';
@@ -1460,14 +1416,13 @@ function closeNWRPanel() {
     document.getElementById('nwr-backdrop').style.display = 'none';
 }
 
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // MODAL
-// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 function openModal(feature) {
-    const p     = feature.properties;
-    const event = p.event || 'Alert';
-    document.getElementById('modal-event').textContent   = event;
-    document.getElementById('modal-event').style.color   = alertColor(event);
+    const p = feature.properties || {};
+    document.getElementById('modal-event').textContent   = p.event || 'Alert';
+    document.getElementById('modal-event').style.color   = alertColor(p.event);
     document.getElementById('modal-area').textContent    = p.areaDesc || '';
     document.getElementById('modal-expires').textContent = 'Expires: ' + (p.expires ? new Date(p.expires).toLocaleString() : 'Unknown');
     document.getElementById('modal-body').textContent    = p.description || 'No description.';
@@ -1478,15 +1433,9 @@ function closeModal(e) {
         document.getElementById('modal-overlay').classList.remove('open');
 }
 
-// ═══════════════════════════════════════════════════════════════
-// SYNC INDICATOR
-// ═══════════════════════════════════════════════════════════════
 function showSync() { document.getElementById('sync-indicator').classList.add('show'); }
 function hideSync() { setTimeout(() => document.getElementById('sync-indicator').classList.remove('show'), 800); }
 
-// ═══════════════════════════════════════════════════════════════
-// UTILS
-// ═══════════════════════════════════════════════════════════════
 function escHtml(str) {
     return String(str).replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
