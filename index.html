@@ -1602,21 +1602,40 @@ async function searchMap(e) {
 }
 
 function flyToSearchResult(lat, lon, label) {
-    if (mapSearchMarker) { mapInstance.removeLayer(mapSearchMarker); mapSearchMarker = null; }
-    mapSearchMarker = L.marker([lat, lon], {
-        icon: L.divIcon({
-            className: '',
-            html: `<div style="background:var(--primary);border:2px solid white;border-radius:50%;width:12px;height:12px;box-shadow:0 0 10px rgba(79,195,247,0.9);"></div>`,
-            iconSize: [12, 12], iconAnchor: [6, 6]
-        })
-    }).addTo(mapInstance)
-      .bindPopup(`<b>${label}</b>`, { closeButton: false })
-      .openPopup();
-    mapInstance.flyTo([lat, lon], 10, { duration: 1.2 });
-    document.getElementById('map-search-results').style.display = 'none';
-    document.getElementById('map-search-input').value = label.split(',')[0].trim();
-    document.getElementById('map-search-input').blur();
+  if (mapSearchMarker) {
+    mapInstance.removeLayer(mapSearchMarker);
+    mapSearchMarker = null;
+  }
+
+  // Create and add the marker
+  mapSearchMarker = L.marker([lat, lon], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="background:var(--primary);border:2px solid white;border-radius:50%;width:12px;height:12px;box-shadow:0 0 10px rgba(79,195,247,0.9);"></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    })
+  }).addTo(mapInstance)
+    .bindPopup(`<b>${label}</b>`, { closeButton: false })
+    .openPopup();
+
+  // Fly to the location
+  mapInstance.flyTo([lat, lon], 10, { duration: 1.2 });
+
+  // UI Updates
+  document.getElementById('map-search-results').style.display = 'none';
+  document.getElementById('map-search-input').value = label.split(',')[0].trim();
+  document.getElementById('map-search-input').blur();
+
+  // Remove the marker after 5000ms (5 seconds)
+  setTimeout(() => {
+    if (mapSearchMarker) {
+      mapInstance.removeLayer(mapSearchMarker);
+      mapSearchMarker = null;
+    }
+  }, 5000);
 }
+
 
 function clearMapSearchResults() {
     const el = document.getElementById('map-search-results');
