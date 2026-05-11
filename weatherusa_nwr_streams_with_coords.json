@@ -33,7 +33,7 @@
   },
   {
     "callsign": "KIG78",
-    "info": "Listen",
+    "info": "Offline",
     "stream_url": "https://radio.weatherusa.net/NWR/KIG78_2.mp3",
     "location": "Coachella, CA",
     "latitude": 33.6803,
@@ -73,7 +73,7 @@
   },
   {
     "callsign": "KEC57",
-    "info": "Listen",
+    "info": "Offline",
     "stream_url": "https://broadcastify.cdnstream1.com/34488",
     "location": "Sacramento, CA",
     "latitude": 38.5816,
@@ -105,7 +105,7 @@
   },
   {
     "callsign": "WXK83",
-    "info": "Listen",
+    "info": "Offline",
     "stream_url": "https://wxradio.org/FL-FortMyers-WXK83",
     "location": "Fort Myers, FL",
     "latitude": 26.6406,
@@ -113,7 +113,7 @@
   },
   {
     "callsign": "KHB34",
-    "info": "Listen",
+    "info": "Offline",
     "stream_url": "https://wxr.gwes-cdn.net/KHB34",
     "location": "Miami, FL",
     "latitude": 25.7617,
@@ -121,7 +121,7 @@
   },
   {
     "callsign": "KHB39",
-    "info": "Listen",
+    "info": "Offline",
     "stream_url": "https://wxr.gwes-cdn.net/KHB39",
     "location": "Jacksonville, FL",
     "latitude": 30.3322,
@@ -145,7 +145,7 @@
   },
   {
     "callsign": "WNG663",
-    "info": "Listen",
+    "info": "Offline",
     "stream_url": "https://wxr.gwes-cdn.net/WNG663",
     "location": "Princeton, FL",
     "latitude": 25.5384,
@@ -193,7 +193,7 @@
   },
   {
     "callsign": "WWH23",
-    "info": "Listen",
+    "info": "Offline",
     "stream_url": "https://wxradio.org/GA-Buchanan-WWH23",
     "location": "Buchanan, GA",
     "latitude": 33.8262,
