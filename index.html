@@ -355,6 +355,7 @@ let activeSPCDay      = 1;
 let mapInstance       = null;
 let alertsFetching    = false;
 let renderGeneration  = 0;   // increment on every renderAlertsOnMap call
+const openAlertIds    = new Set();  // NWS alert IDs whose full-text panel is open
 
 // Caches
 const zoneGeoCache   = {};  // ugcCode -> GeoJSON geometry | null
@@ -456,13 +457,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // TAB SWITCHING
 // ═══════════════════════════════════════════════════════════
 function switchTab(name, navEl) {
+    const prev = document.querySelector('.tab-content.active')?.id;
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById(name + '-tab').classList.add('active');
     if (navEl) navEl.classList.add('active');
-    if (name === 'map'      && mapInstance)   setTimeout(() => mapInstance.invalidateSize(), 50);
+    if (name === 'map'      && mapInstance)    setTimeout(() => mapInstance.invalidateSize(), 50);
     if (name === 'nwr'      && nwrCoverageMap) setTimeout(() => nwrCoverageMap.invalidateSize(), 50);
-    if (name === 'outlooks' && outlookMap)    setTimeout(() => outlookMap.invalidateSize(), 50);
+    if (name === 'outlooks' && outlookMap)     setTimeout(() => outlookMap.invalidateSize(), 50);
+    // Clear remembered open panels when navigating away from alerts tab
+    if (prev === 'alerts-tab' && name !== 'alerts') openAlertIds.clear();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -479,7 +483,7 @@ function initMap() {
 
 // ═══════════════════════════════════════════════════════════
 // OUTLOOK MAP — interactive Leaflet map with SPC GeoJSON
-// ═══════════════════════════════════════════════════════════
+// ══════════════════════ ��════════════════════════════════════
 function initOutlookMap() {
     outlookMap = L.map('outlook-map', { zoomControl: true, attributionControl: false }).setView([38.5, -96.5], 4);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -597,7 +601,7 @@ function parseCityState(location) {
 
 function enqueueNWRGeocode(stations) {
     stations.forEach(s => {
-        if (s.lat != null && s.lon != null) return; // already has precise coords
+        if (nwrLatLon(s) !== null) return; // already has precise coords
         const key = parseCityState(s.location);
         if (key && geocodeCache[key] === undefined) {
             geocodeCache[key] = null; // mark as queued
@@ -649,9 +653,17 @@ function applyGeocodedCoords(station, coords) {
     marker.addTo(nwrCoverageLayer);
 }
 
+// Extract lat/lon from a station regardless of field name variant
+function nwrLatLon(s) {
+    const lat = s.lat ?? s.latitude ?? s.Lat ?? s.LAT ?? null;
+    const lon = s.lon ?? s.lng ?? s.longitude ?? s.Lon ?? s.LON ?? null;
+    return (lat != null && lon != null) ? [+lat, +lon] : null;
+}
+
 // Return best coordinates for a station
 function stationCoords(station) {
-    if (station.lat != null && station.lon != null) return [+station.lat, +station.lon];
+    const explicit = nwrLatLon(station);
+    if (explicit) return explicit;
     if (station._geocodedLat != null) return [station._geocodedLat, station._geocodedLon];
     // State centroid fallback with small deterministic jitter
     const m = (station.location || '').match(/,\s*([A-Z]{2})(?:\s*[\(\);]|$)/);
@@ -680,7 +692,7 @@ function renderNWRCoverageMap(stations) {
     stations.forEach(s => {
         const coords = stationCoords(s);
         if (!coords) return;
-        const precise = (s.lat != null) || (s._geocodedLat != null);
+        const precise = nwrLatLon(s) !== null || (s._geocodedLat != null);
         const marker = L.circleMarker(coords, {
             radius: precise ? 5 : 4,
             color: '#4fc3f7', weight: 1,
@@ -975,6 +987,7 @@ async function renderAlertZones(feature, ugcCodes, color, gen) {
     const geos  = await Promise.all(ugcCodes.map(code => fetchZoneGeom(code)));
     // If a newer render has started, discard results to avoid ghost polygons
     if (gen !== renderGeneration) return;
+    let rendered = 0;
     geos.forEach(geo => {
         if (!geo) return;
         try {
@@ -987,8 +1000,23 @@ async function renderAlertZones(feature, ugcCodes, color, gen) {
                 { sticky: true, direction: 'top' }
             );
             layer.addTo(alertLayer);
+            rendered++;
         } catch(e) {}
     });
+    // If every zone fetch failed, show a centroid dot so the alert isn't invisible
+    if (rendered === 0) {
+        const coords = getBestCoords(feature);
+        if (!coords) return;
+        const marker = L.circleMarker([coords.lat, coords.lon], {
+            radius: 8, color, weight: 1.5, fillColor: color, fillOpacity: 0.35, dashArray: '4 3'
+        });
+        marker.on('click', () => handleAlertClick(feature));
+        marker.bindTooltip(
+            `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`,
+            { sticky: true, direction: 'top' }
+        );
+        marker.addTo(alertLayer);
+    }
 }
 
 function toggleMapMode(btn) {
@@ -1170,12 +1198,14 @@ function renderAlertsList() {
     list.innerHTML = filtered.map(a => {
         const realIdx = activeAlerts.indexOf(a);
         const p       = a.properties || {};
+        const nwsId   = (p.id || String(realIdx)).replace(/[^a-zA-Z0-9_-]/g, '_');
         const event   = p.event || 'Alert';
         const color   = alertColor(event);
         const expires = p.expires ? new Date(p.expires).toLocaleString() : 'Unknown';
         const canMap  = !!a.geometry || (p.geocode?.UGC?.length > 0);
+        const isOpen  = openAlertIds.has(nwsId);
         return `
-        <div class="alert-card-full" id="alert-card-${realIdx}" style="border-left-color:${color};">
+        <div class="alert-card-full" id="alert-card-${realIdx}" data-nws-id="${nwsId}" style="border-left-color:${color};">
             <div class="event-name" style="color:${color};">${event}</div>
             <div class="area-desc">${p.areaDesc || ''}</div>
             <div class="alert-expires">Expires: ${expires}</div>
@@ -1184,9 +1214,9 @@ function renderAlertsList() {
                     📻 Find NWR
                 </button>
                 ${canMap ? `<button class="alert-nwr-btn" onclick="showAlertOnMap(${realIdx})">🗺 Show on Map</button>` : ''}
-                <button class="alert-nwr-btn" onclick="toggleAlertText(this)">▼ Full Text</button>
+                <button class="alert-nwr-btn" onclick="toggleAlertText(this)">${isOpen ? '▲ Hide Text' : '▼ Full Text'}</button>
             </div>
-            <div class="alert-full-text">${
+            <div class="alert-full-text" style="display:${isOpen ? 'block' : 'none'};">${
                 [p.description || 'No description available.',
                  p.instruction ? '\n\nPRECAUTIONARY/PREPAREDNESS ACTIONS...\n\n' + p.instruction : '']
                 .join('').replace(/</g,'&lt;')
@@ -1196,10 +1226,13 @@ function renderAlertsList() {
 }
 
 function toggleAlertText(btn) {
-    const text = btn.closest('.alert-card-full').querySelector('.alert-full-text');
-    const open = text.style.display === 'block';
+    const card  = btn.closest('.alert-card-full');
+    const text  = card.querySelector('.alert-full-text');
+    const nwsId = card.dataset.nwsId;
+    const open  = text.style.display === 'block';
     text.style.display = open ? 'none' : 'block';
     btn.textContent = open ? '▼ Full Text' : '▲ Hide Text';
+    if (nwsId) { open ? openAlertIds.delete(nwsId) : openAlertIds.add(nwsId); }
 }
 
 function setAlertFilter(key, el) {
@@ -1380,13 +1413,13 @@ async function loadSPCWatches() {
         }).join('');
     }
 
-    // MDs — try multiple sources in order (SPC often blocks CORS; IEM is more reliable)
-    const MD_URLS = [
+    // MDs — try SPC GeoJSON, then IEM GeoJSON, then NWS text products API
+    const MD_GEOJSON_URLS = [
         'https://www.spc.noaa.gov/products/md/md_active.lyr.geojson',
         'https://mesonet.agron.iastate.edu/api/1/spcmcd.geojson',
     ];
     let mdFeatures = null;
-    for (const url of MD_URLS) {
+    for (const url of MD_GEOJSON_URLS) {
         try {
             const ctrl = new AbortController();
             const timer = setTimeout(() => ctrl.abort(), 6000);
@@ -1399,22 +1432,54 @@ async function loadSPCWatches() {
             }
         } catch(e) { /* try next URL */ }
     }
+
+    // If GeoJSON sources failed or are empty, try NWS products API (always has CORS)
+    if (!mdFeatures || mdFeatures.length === 0) {
+        try {
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 6000);
+            const res = await fetch(
+                'https://api.weather.gov/products?type=MCD&location=KWNS&limit=20',
+                { headers: NWS_HEADERS, signal: ctrl.signal }
+            );
+            clearTimeout(timer);
+            if (res.ok) {
+                const data = await res.json();
+                const products = data['@graph'] || [];
+                if (products.length > 0) {
+                    mdEl.innerHTML = products.map(p => {
+                        const issued = p.issuanceTime ? new Date(p.issuanceTime).toLocaleString() : '';
+                        // Extract MD number from awipsId e.g. "MCDKWNS" — number comes from product text fetch
+                        const awips = p.awipsId || '';
+                        return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                            <span style="color:var(--warning);font-weight:bold;">Mesoscale Discussion</span>
+                            <div style="color:#889;font-size:0.85em;margin-top:3px;">Issued: ${issued}</div>
+                        </div>`;
+                    }).join('') +
+                    `<div style="margin-top:6px;font-size:0.75em;">
+                        <a href="https://www.spc.noaa.gov/products/md/" target="_blank" style="color:var(--primary);">View full MDs on SPC ↗</a>
+                    </div>`;
+                    return;
+                }
+            }
+        } catch(e) {}
+    }
+
+    const spcLink = `<div style="margin-top:6px;font-size:0.75em;"><a href="https://www.spc.noaa.gov/products/md/" target="_blank" style="color:var(--primary);">Check SPC ↗</a></div>`;
     if (mdFeatures === null) {
-        mdEl.textContent = 'Could not reach SPC. Try again later.';
+        mdEl.innerHTML = 'Could not reach SPC. ' + spcLink;
     } else if (!mdFeatures.length) {
-        mdEl.textContent = 'No active Mesoscale Discussions.';
+        mdEl.innerHTML = 'No active Mesoscale Discussions.' + spcLink;
     } else {
         mdEl.innerHTML = mdFeatures.map(md => {
             const p   = md.properties || {};
-            // SPC GeoJSON uses MNDNUM; IEM uses num
             const num = p.MNDNUM || p.mndnum || p.num || '?';
-            // SPC: DISCUSSI; IEM: product_id or issue
             const txt = (p.DISCUSSI || p.text || p.product_id || '').substring(0, 180);
             return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
                 <span style="color:var(--warning);font-weight:bold;">MD #${num}</span>
                 <div style="color:#889;font-size:0.85em;margin-top:3px;">${txt}${txt.length >= 180 ? '…' : ''}</div>
             </div>`;
-        }).join('');
+        }).join('') + spcLink;
     }
 }
 
