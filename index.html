@@ -106,7 +106,7 @@
         /* NWR TAB */
         #nwr-tab { overflow-y: auto; padding: 16px; gap: 0; }
         .section-title { font-weight: bold; font-size: 0.82em; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-        #nwr-coverage-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 220px; position: relative; }
+        #nwr-coverage-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 260px; position: relative; }
         #nwr-coverage-map { width: 100%; height: 100%; }
         #nwr-coverage-label { position: absolute; top: 8px; left: 8px; z-index: 800; background: rgba(7,19,29,0.82); border: 1px solid rgba(79,195,247,0.2); border-radius: 6px; padding: 4px 9px; font-size: 0.64em; font-weight: bold; color: var(--primary); letter-spacing: 1px; text-transform: uppercase; pointer-events: none; }
         #nwr-search-box { display: flex; gap: 10px; margin-bottom: 16px; }
@@ -117,8 +117,11 @@
         #nwr-list { display: flex; flex-direction: column; gap: 6px; }
         .nwr-full-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 14px; transition: background 0.2s; }
         .nwr-full-card:hover { background: rgba(255,255,255,0.06); }
+        .nwr-full-card.offline { opacity: 0.6; }
         .nwr-full-card .callsign { font-family: monospace; font-weight: 900; color: var(--primary); font-size: 0.9em; min-width: 72px; }
+        .nwr-full-card.offline .callsign { color: var(--danger); }
         .nwr-full-card .loc { flex: 1; font-size: 0.85em; color: #ccc; }
+        .nwr-offline-badge { font-size: 0.68em; font-weight: bold; color: var(--danger); background: rgba(255,23,68,0.12); border: 1px solid rgba(255,23,68,0.3); padding: 3px 8px; border-radius: 10px; white-space: nowrap; }
         #nwr-count { font-size: 0.72em; color: #556; margin-bottom: 10px; font-family: monospace; }
 
         /* OUTLOOKS TAB */
@@ -126,7 +129,7 @@
         .outlook-day-tabs { display: flex; gap: 5px; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 10px; }
         .otab-btn { flex: 1; padding: 8px; border: none; background: transparent; color: #556; font-size: 0.78em; font-weight: bold; cursor: pointer; border-radius: 7px; transition: 0.2s; }
         .otab-btn.active { background: var(--primary); color: #000; }
-        #outlook-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 320px; position: relative; }
+        #outlook-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 480px; position: relative; }
         #outlook-map { width: 100%; height: 100%; }
         #outlook-map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 900; background: rgba(7,19,29,0.9); border-radius: 10px; padding: 14px 20px; font-size: 0.8em; color: var(--primary); text-align: center; }
         .outlook-label { font-size: 0.72em; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
@@ -235,6 +238,7 @@
             <div style="font-size:0.78em; color:#889; line-height:1.6;">
                 <b style="color:var(--primary);">How it works:</b> Click any alert on the MAP tab to automatically find the NWR station(s)
                 covering that alert area. You can also browse and play any station below.
+                <br><span style="color:var(--danger);">● Offline</span> stations are not playable.
             </div>
         </div>
         <div id="nwr-list">
@@ -311,22 +315,22 @@
     <div class="audio-vu">
         <div class="vu-bar" style="height:6px;"></div>
         <div class="vu-bar" style="height:12px;"></div>
-        <div class="vu-bar" style="height:8px;"></div>
-        <div class="vu-bar" style="height:16px;"></div>
-        <div class="vu-bar" style="height:10px;"></div>
+        <div class="vu-bar" style="height:9px;"></div>
+        <div class="vu-bar" style="height:15px;"></div>
+        <div class="vu-bar" style="height:7px;"></div>
     </div>
     <div id="audio-bar-info">
-        <div id="audio-bar-callsign">---</div>
-        <div id="audio-bar-loc">NOAA Weather Radio</div>
+        <div id="audio-bar-callsign">–</div>
+        <div id="audio-bar-loc">–</div>
     </div>
-    <button id="audio-stop-btn" onclick="stopAudio()">■ STOP</button>
+    <button id="audio-stop-btn" onclick="stopAudio()">■ Stop</button>
 </div>
 
 <div id="modal-overlay" onclick="closeModal(event)">
     <div id="modal-box">
         <button id="modal-close" onclick="closeModal()">✕</button>
-        <h3 id="modal-event">Alert Detail</h3>
-        <div id="modal-area" style="font-size:0.75em; color:#889; margin-bottom:12px;"></div>
+        <h3 id="modal-event"></h3>
+        <div id="modal-area" style="font-size:0.78em; color:#889; margin-bottom:8px;"></div>
         <div id="modal-expires" style="font-size:0.7em; font-family:monospace; color:#556; margin-bottom:14px;"></div>
         <div id="modal-nwr-section" style="margin-bottom:14px;"></div>
         <div id="modal-body" style="font-size:0.82em; white-space:pre-wrap; line-height:1.65; color:rgba(255,255,255,0.85); font-family:monospace; max-height:300px; overflow-y:auto;"></div>
@@ -375,13 +379,39 @@ let activeSPCDay      = 1;
 let mapInstance       = null;
 let alertsFetching    = false;
 let renderGeneration  = 0;   // increment on every renderAlertsOnMap call
-const openAlertIds    = new Set();  // NWS alert IDs whose full-text panel is open
+const openAlertIds    = new Set();   // NWS alert IDs whose full-text panel is open
+const openAlertScrolls = {};         // nwsId -> scrollTop position within text box
 
 // Caches
 const zoneGeoCache   = {};  // ugcCode -> GeoJSON geometry | null
 const geocodeCache   = {};  // "City, ST" -> [lat, lon] | null
 let   geocodeQueue   = [];
 let   geocodeRunning = false;
+
+// ── Zone-fetch concurrency semaphore ─────────────────────────────────────────
+// Limits simultaneous NWS zone API calls to avoid overwhelming the API.
+// The cache means already-fetched zones are returned instantly.
+const _zSem = { slots: 8, queue: [] };
+function _zRelease() {
+    if (_zSem.queue.length > 0) {
+        const next = _zSem.queue.shift();
+        next();
+    } else {
+        _zSem.slots++;
+    }
+}
+function fetchZoneGeomQueued(code) {
+    if (Object.prototype.hasOwnProperty.call(zoneGeoCache, code)) {
+        return Promise.resolve(zoneGeoCache[code]);
+    }
+    return new Promise(resolve => {
+        const run = () => {
+            fetchZoneGeom(code).then(geo => { _zRelease(); resolve(geo); });
+        };
+        if (_zSem.slots > 0) { _zSem.slots--; run(); }
+        else { _zSem.queue.push(run); }
+    });
+}
 
 const NWS_HEADERS = { 'User-Agent': 'WeatherControlCenter/2.0 (wcc@example.com)' };
 
@@ -421,27 +451,27 @@ const ALERT_COLORS = {
     'High Wind Warning':           '#DAA520',
     'Wind Advisory':               '#D2B48C',
     'Special Weather Statement':   '#FFE4B5',
-    'Flood Advisory':        '#00FF7F',
+    'Flood Advisory':              '#00FF7F',
     'Extreme Wind Warning':        '#FF8C00',
-    'Marine Weather Statement':        '#FFDAB9',
-    'Special Marine Warning':        '#FFA500',
-    'Freeze Warning':        '#483D8B',
-    'Red Flag Warning':        '#FF1493',
-    'Dust Storm Warning':        '#FFE4C4',
-    'Hydrologic Outlook':        '#90EE90',
-    'Frost Advisory':        '#6495ED',
+    'Marine Weather Statement':    '#FFDAB9',
+    'Special Marine Warning':      '#FFA500',
+    'Freeze Warning':              '#483D8B',
+    'Red Flag Warning':            '#FF1493',
+    'Dust Storm Warning':          '#FFE4C4',
+    'Hydrologic Outlook':          '#90EE90',
+    'Frost Advisory':              '#6495ED',
     'Small Craft Advisory':        '#D8BFD8',
-    'Air Quality Alert':        '#808080',
+    'Air Quality Alert':           '#808080',
     'Extreme Heat Warning':        '#C71585',
-    'Heat Advisory':        '#FF7F50',
-    'Heavy Freezing Spray Warning':        '#00BFFF',
-    'Gale Warning':        '#DDA0DD',
-    'Brisk Wind Advisory':        '#D8BFD8',
-    'Lake Wind Advisory':        '#D2B48C',
-    'Rip Current Statement':        '#40E0D0',
-    'Beach Hazards Statement':        '#40E0D0',
-    'Gale Watch':        '#FFC0CB',
-    'Fire Weather Watch':        '#FFDEAD',
+    'Heat Advisory':               '#FF7F50',
+    'Heavy Freezing Spray Warning':'#00BFFF',
+    'Gale Warning':                '#DDA0DD',
+    'Brisk Wind Advisory':         '#D8BFD8',
+    'Lake Wind Advisory':          '#D2B48C',
+    'Rip Current Statement':       '#40E0D0',
+    'Beach Hazards Statement':     '#40E0D0',
+    'Gale Watch':                  '#FFC0CB',
+    'Fire Weather Watch':          '#FFDEAD',
 };
 
 // SPC categorical outlook colors
@@ -472,6 +502,11 @@ function alertColor(event) {
     return '#4fc3f7';
 }
 
+// ── Determine if a NWR station is offline ────────────────────────────────────
+function isNWROffline(station) {
+    return (station.info || '').trim().toLowerCase() === 'offline';
+}
+
 // ═══════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════
@@ -484,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
     loadSPCWatches();
     updateSPCCountdown();
     setInterval(loadAlerts, 8000);
-    setInterval(updateSPCCountdown, 30000);
+    setInterval(updateSPCCountdown, 1000);  // tick every second for accurate countdown
     setInterval(() => {
         if (radarMapState === 1 && radarLayerMap) {
             mapInstance.removeLayer(radarLayerMap);
@@ -497,7 +532,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // TAB SWITCHING
 // ═══════════════════════════════════════════════════════════
 function switchTab(name, navEl) {
-    const prev = document.querySelector('.tab-content.active')?.id;
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById(name + '-tab').classList.add('active');
@@ -505,8 +539,7 @@ function switchTab(name, navEl) {
     if (name === 'map'      && mapInstance)    setTimeout(() => mapInstance.invalidateSize(), 50);
     if (name === 'nwr'      && nwrCoverageMap) setTimeout(() => nwrCoverageMap.invalidateSize(), 50);
     if (name === 'outlooks' && outlookMap)     setTimeout(() => outlookMap.invalidateSize(), 50);
-    // Clear remembered open panels when navigating away from alerts tab
-    if (prev === 'alerts-tab' && name !== 'alerts') openAlertIds.clear();
+    // NOTE: we do NOT clear openAlertIds on tab switch so reading state is preserved
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -522,12 +555,16 @@ function initMap() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// OUTLOOK MAP — interactive Leaflet map with SPC GeoJSON
+// OUTLOOK MAP — interactive Leaflet map zoomed to CONUS
 // ═══════════════════════════════════════════════════════════
+// CONUS bounds for the SPC outlook map
+const CONUS_BOUNDS = [[23.0, -125.0], [50.0, -65.0]];
+
 function initOutlookMap() {
-    outlookMap = L.map('outlook-map', { zoomControl: true, attributionControl: false }).setView([38.5, -96.5], 4);
+    outlookMap = L.map('outlook-map', { zoomControl: true, attributionControl: false });
+    outlookMap.fitBounds(CONUS_BOUNDS);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        maxZoom: 10
+        maxZoom: 12
     }).addTo(outlookMap);
     outlookLayer = L.layerGroup().addTo(outlookMap);
 }
@@ -535,12 +572,12 @@ function initOutlookMap() {
 function loadSPCOutlook(day) {
     activeSPCDay = day;
     document.getElementById('outlook-label').textContent = `Day ${day} Convective Outlook`;
+    updateSPCCountdown();
 
     const loadingEl = document.getElementById('outlook-map-loading');
     loadingEl.style.display = 'block';
     if (outlookLayer) outlookLayer.clearLayers();
 
-    // SPC serves these GeoJSON files with CORS headers
     const url = `https://www.spc.noaa.gov/products/outlook/day${day}otlk_cat.lyr.geojson`;
 
     fetch(url)
@@ -572,31 +609,26 @@ function loadSPCOutlook(day) {
                 } catch(e) {}
             });
 
-            try {
-                const bounds = L.geoJSON(data).getBounds();
-                if (bounds.isValid()) outlookMap.fitBounds(bounds, { padding: [10, 10] });
-            } catch(e) {}
+            // Always reset view to CONUS after loading — don't zoom into Missouri
+            outlookMap.fitBounds(CONUS_BOUNDS);
         })
         .catch(() => {
             loadingEl.style.display = 'none';
             showOutlookFallbackNote(day);
+            outlookMap.fitBounds(CONUS_BOUNDS);
         });
 }
 
 function getOutlookLabel(feature) {
     const p = feature.properties || {};
-    // SPC GeoJSON uses LABEL or dn field for the category
     const raw = (p.LABEL || p.dn || p.LABEL2 || '').toString().trim().toUpperCase();
-    // Match known categories
     for (const cat of SPC_CAT_ORDER) { if (raw.includes(cat)) return cat; }
-    // Numeric dn mapping (SPC uses 3=TSTM, 4=MRGL, 5=SLGT, 6=ENH, 7=MDT, 8=HIGH)
     const dnMap = { '3':'TSTM','4':'MRGL','5':'SLGT','6':'ENH','7':'MDT','8':'HIGH' };
     if (dnMap[raw]) return dnMap[raw];
     return raw || 'TSTM';
 }
 
 function showOutlookFallbackNote(day) {
-    // Add a small info box inside the map
     const ctrl = L.control({ position: 'bottomright' });
     ctrl.onAdd = () => {
         const d = L.DomUtil.create('div');
@@ -615,7 +647,53 @@ function switchOutlookDay(day, btn) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// NWR DATABASE + COVERAGE MAP with real city geocoding
+// SPC COUNTDOWN — per-day accurate issuance schedule (UTC)
+// D1: 0100, 0600, 1300, 1630, 2000 UTC
+// D2: 0600, 1730 UTC
+// D3: 0730 UTC
+// ═══════════════════════════════════════════════════════════
+const SPC_ISSUANCE_UTC = {
+    1: [1*60, 6*60, 13*60, 16*60+30, 20*60],        // minutes past midnight UTC
+    2: [6*60, 17*60+30],
+    3: [7*60+30],
+};
+
+function updateSPCCountdown() {
+    const el = document.getElementById('spc-countdown');
+    if (!el) return;
+    const now    = new Date();
+    const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
+    const nowSec = now.getUTCSeconds();
+
+    const schedule = SPC_ISSUANCE_UTC[activeSPCDay] || SPC_ISSUANCE_UTC[1];
+
+    // Find next issuance after current UTC time (in minutes)
+    let nextMin = null;
+    for (const t of schedule) {
+        if (t > nowMin) { nextMin = t; break; }
+    }
+    // If none found today, use first issuance of next day
+    if (nextMin === null) nextMin = schedule[0] + 24 * 60;
+
+    const diffSec  = (nextMin - nowMin) * 60 - nowSec;
+    const h  = Math.floor(diffSec / 3600);
+    const m  = Math.floor((diffSec % 3600) / 60);
+    const s  = diffSec % 60;
+
+    // Compute the actual clock time of next issuance
+    const targetUtcMin = (nextMin % (24 * 60));
+    const tH = Math.floor(targetUtcMin / 60);
+    const tM = targetUtcMin % 60;
+    const nextTimeLocal = new Date();
+    nextTimeLocal.setUTCHours(tH, tM, 0, 0);
+    if (nextMin >= 24 * 60) nextTimeLocal.setUTCDate(nextTimeLocal.getUTCDate() + 1);
+    const localStr = nextTimeLocal.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    el.textContent = `D${activeSPCDay} next issuance: ${h}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s · ${localStr}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// NWR DATABASE + COVERAGE MAP
 // ═══════════════════════════════════════════════════════════
 async function loadNWRDatabase() {
     try {
@@ -629,11 +707,9 @@ async function loadNWRDatabase() {
     initNWRCoverageMap();
     renderNWRList(nwrDatabase);
     populateStateFilter();
-    // Kick off background city geocoding (rate-limited to Nominatim's 1 req/sec policy)
     enqueueNWRGeocode(nwrDatabase);
 }
 
-// Extract "City, ST" from a location string
 function parseCityState(location) {
     const m = (location || '').match(/^(.+?),\s*([A-Z]{2})(?:\s|$|\()/);
     return m ? `${m[1].trim()}, ${m[2]}` : null;
@@ -641,10 +717,10 @@ function parseCityState(location) {
 
 function enqueueNWRGeocode(stations) {
     stations.forEach(s => {
-        if (nwrLatLon(s) !== null) return; // already has precise coords
+        if (nwrLatLon(s) !== null) return;
         const key = parseCityState(s.location);
         if (key && geocodeCache[key] === undefined) {
-            geocodeCache[key] = null; // mark as queued
+            geocodeCache[key] = null;
             geocodeQueue.push({ station: s, key });
         }
     });
@@ -671,7 +747,6 @@ async function drainGeocodeQueue() {
                 applyGeocodedCoords(station, coords);
             }
         } catch(e) {}
-        // 1.1 s between requests to stay within Nominatim's usage policy
         await new Promise(r => setTimeout(r, 1100));
     }
     geocodeRunning = false;
@@ -680,32 +755,32 @@ async function drainGeocodeQueue() {
 function applyGeocodedCoords(station, coords) {
     station._geocodedLat = coords[0];
     station._geocodedLon = coords[1];
-    // Add a precise marker to the NWR coverage map
     if (!nwrCoverageLayer) return;
+    const offline = isNWROffline(station);
+    const color   = offline ? '#ff1744' : '#4fc3f7';
     const marker = L.circleMarker(coords, {
-        radius: 5, color: '#4fc3f7', weight: 1.5, fillColor: '#4fc3f7', fillOpacity: 0.9
+        radius: 5, color, weight: 1.5, fillColor: color, fillOpacity: 0.9
     });
     marker.bindTooltip(
-        `<b style="color:#4fc3f7">${station.callsign}</b><br><span style="font-size:0.85em;">${station.location}</span>`,
+        `<b style="color:${color}">${station.callsign}</b>${offline ? ' <span style="color:#ff1744;">[OFFLINE]</span>' : ''}<br><span style="font-size:0.85em;">${station.location}</span>`,
         { sticky: true, direction: 'top' }
     );
-    marker.on('click', () => playNWR(station.callsign, station.stream_url, station.location));
+    if (!offline) {
+        marker.on('click', () => playNWR(station.callsign, station.stream_url, station.location));
+    }
     marker.addTo(nwrCoverageLayer);
 }
 
-// Extract lat/lon from a station regardless of field name variant
 function nwrLatLon(s) {
     const lat = s.lat ?? s.latitude ?? s.Lat ?? s.LAT ?? null;
     const lon = s.lon ?? s.lng ?? s.longitude ?? s.Lon ?? s.LON ?? null;
     return (lat != null && lon != null) ? [+lat, +lon] : null;
 }
 
-// Return best coordinates for a station
 function stationCoords(station) {
     const explicit = nwrLatLon(station);
     if (explicit) return explicit;
     if (station._geocodedLat != null) return [station._geocodedLat, station._geocodedLon];
-    // State centroid fallback with small deterministic jitter
     const m = (station.location || '').match(/,\s*([A-Z]{2})(?:\s*[\(\);]|$)/);
     if (m && STATE_CENTROIDS[m[1]]) {
         const [bLat, bLon] = STATE_CENTROIDS[m[1]];
@@ -718,10 +793,10 @@ function stationCoords(station) {
 function initNWRCoverageMap() {
     if (nwrCoverageMap) return;
     nwrCoverageMap = L.map('nwr-coverage-map', {
-        zoomControl: false, attributionControl: false,
-        scrollWheelZoom: false, dragging: true, touchZoom: true, doubleClickZoom: false,
-    }).setView([39, -96], 3);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 8 }).addTo(nwrCoverageMap);
+        zoomControl: true, attributionControl: false,
+        scrollWheelZoom: true, dragging: true, touchZoom: true, doubleClickZoom: true,
+    }).setView([39, -96], 4);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 12 }).addTo(nwrCoverageMap);
     nwrCoverageLayer = L.layerGroup().addTo(nwrCoverageMap);
     renderNWRCoverageMap(nwrDatabase);
 }
@@ -730,19 +805,23 @@ function renderNWRCoverageMap(stations) {
     if (!nwrCoverageLayer) return;
     nwrCoverageLayer.clearLayers();
     stations.forEach(s => {
-        const coords = stationCoords(s);
+        const coords  = stationCoords(s);
         if (!coords) return;
-        const precise = nwrLatLon(s) !== null || (s._geocodedLat != null);
-        const marker = L.circleMarker(coords, {
+        const offline  = isNWROffline(s);
+        const color    = offline ? '#ff1744' : '#00e676';
+        const precise  = nwrLatLon(s) !== null || (s._geocodedLat != null);
+        const marker   = L.circleMarker(coords, {
             radius: precise ? 5 : 4,
-            color: '#4fc3f7', weight: 1,
-            fillColor: '#4fc3f7', fillOpacity: precise ? 0.9 : 0.5,
+            color, weight: 1,
+            fillColor: color, fillOpacity: precise ? 0.9 : 0.55,
         });
         marker.bindTooltip(
-            `<b style="color:#4fc3f7">${s.callsign}</b><br><span style="font-size:0.85em;">${s.location}</span>`,
+            `<b style="color:${color}">${s.callsign}</b>${offline ? ' <span style="color:#ff1744;">[OFFLINE]</span>' : ''}<br><span style="font-size:0.85em;">${s.location}</span>`,
             { sticky: true, direction: 'top' }
         );
-        marker.on('click', () => playNWR(s.callsign, s.stream_url, s.location));
+        if (!offline) {
+            marker.on('click', () => playNWR(s.callsign, s.stream_url, s.location));
+        }
         marker.addTo(nwrCoverageLayer);
     });
 }
@@ -761,7 +840,7 @@ function populateStateFilter() {
 }
 
 function filterNWRList() {
-    const q     = document.getElementById('nwr-search-input').value.toLowerCase();
+    const q     = document.getElementById('nwr-search-input').value.toLowerCase().trim();
     const state = document.getElementById('nwr-state-filter').value;
     const filtered = nwrDatabase.filter(s => {
         const matchQ  = !q || s.callsign.toLowerCase().includes(q) || s.location.toLowerCase().includes(q);
@@ -769,7 +848,20 @@ function filterNWRList() {
         return matchQ && matchSt;
     });
     renderNWRList(filtered);
-    // Coverage map always shows ALL stations; only the list is filtered
+    // Update the coverage map to show only matching stations
+    renderNWRCoverageMap(filtered);
+    // If there's a filter, fit the map to the matching stations
+    if (q || state) fitNWRCoverageMapToStations(filtered);
+}
+
+function fitNWRCoverageMapToStations(stations) {
+    if (!nwrCoverageMap || !stations.length) return;
+    const coords = stations.map(s => stationCoords(s)).filter(Boolean);
+    if (!coords.length) return;
+    try {
+        const bounds = L.latLngBounds(coords);
+        if (bounds.isValid()) nwrCoverageMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 8 });
+    } catch(e) {}
 }
 
 function renderNWRList(stations) {
@@ -779,13 +871,23 @@ function renderNWRList(stations) {
         listEl.innerHTML = '<div class="nwr-no-match">No stations match your search.</div>';
         return;
     }
-    listEl.innerHTML = stations.map(s => `
+    listEl.innerHTML = stations.map(s => {
+        const offline = isNWROffline(s);
+        if (offline) {
+            return `
+            <div class="nwr-full-card offline">
+                <div class="callsign">${s.callsign}</div>
+                <div class="loc">${s.location}</div>
+                <span class="nwr-offline-badge">● OFFLINE</span>
+            </div>`;
+        }
+        return `
         <div class="nwr-full-card">
             <div class="callsign">${s.callsign}</div>
             <div class="loc">${s.location}</div>
             <button class="nwr-play-btn" onclick="playNWR('${escHtml(s.callsign)}','${escHtml(s.stream_url)}','${escHtml(s.location)}')">▶ Listen</button>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -828,7 +930,7 @@ function stopAudio() {
 // ALERTS — fetch all, follow pagination
 // ═══════════════════════════════════════════════════════════
 async function loadAlerts() {
-    if (alertsFetching) return;   // skip if previous request still in-flight
+    if (alertsFetching) return;
     alertsFetching = true;
     showSync();
     try {
@@ -888,8 +990,7 @@ function updateAlertBanner() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// NWS ZONE GEOMETRY — fetch + cache county/forecast zone polygons
-// UGC code format: {ST}{C|Z|F}{NNN}  e.g. ALC001=county, ALZ001=forecast
+// NWS ZONE GEOMETRY — fetch + cache
 // ═══════════════════════════════════════════════════════════
 function ugcToZoneUrl(code) {
     const t = code.charAt(2).toUpperCase();
@@ -925,7 +1026,7 @@ function geomCentroid(geo) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// BEST COORDS (centroid fallback for alerts without geometry)
+// BEST COORDS (centroid fallback for NWR matching only)
 // ═══════════════════════════════════════════════════════════
 function getBestCoords(feature) {
     const geo   = feature.geometry;
@@ -954,9 +1055,10 @@ function getBestCoords(feature) {
 // Polygon mode  → only alerts with polygon geometry, drawn as polygons
 // All mode      → polygon alerts as polygons + non-polygon alerts as
 //                 actual county/zone polygons fetched from NWS zones API
+//                 NO centroid dots — only real county/zone polygons
 // ═══════════════════════════════════════════════════════════
 function renderAlertsOnMap() {
-    const gen = ++renderGeneration;   // any stale async callbacks will see gen !== renderGeneration
+    const gen = ++renderGeneration;
     alertLayer.clearLayers();
     if (!alertLayerOn) return;
 
@@ -978,14 +1080,13 @@ function renderAlertsOnMap() {
             } catch(e) {}
         });
     } else {
-        // "All" mode — draw everything
+        // "All" mode — draw everything as actual polygons; no dots
         activeAlerts.forEach(feature => {
             const props = feature.properties || {};
             const event = props.event || 'Alert';
             const color = alertColor(event);
 
             if (feature.geometry) {
-                // Has a polygon already — draw it
                 try {
                     const poly = L.geoJSON(feature.geometry, {
                         style: { color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.18 }
@@ -1000,22 +1101,10 @@ function renderAlertsOnMap() {
             } else {
                 const ugcCodes = props.geocode?.UGC || [];
                 if (ugcCodes.length > 0) {
-                    // Fetch full county/zone polygons from NWS zones API (pass gen to guard stale renders)
-                    renderAlertZones(feature, ugcCodes.slice(0, 12), color, gen);
-                } else {
-                    // Absolute last resort — state centroid dot
-                    const coords = getBestCoords(feature);
-                    if (!coords) return;
-                    const marker = L.circleMarker([coords.lat, coords.lon], {
-                        radius: 8, color, weight: 1.5, fillColor: color, fillOpacity: 0.35, dashArray: '4 3'
-                    });
-                    marker.on('click', () => handleAlertClick(feature));
-                    marker.bindTooltip(
-                        `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`,
-                        { sticky: true, direction: 'top' }
-                    );
-                    marker.addTo(alertLayer);
+                    // No slice limit — fetch ALL zones for this alert
+                    renderAlertZones(feature, ugcCodes, color, gen);
                 }
+                // No centroid dot fallback — if no UGC codes, skip silently
             }
         });
     }
@@ -1024,10 +1113,10 @@ function renderAlertsOnMap() {
 async function renderAlertZones(feature, ugcCodes, color, gen) {
     const props = feature.properties || {};
     const event = props.event || 'Alert';
-    const geos  = await Promise.all(ugcCodes.map(code => fetchZoneGeom(code)));
+    // Use queued fetcher to limit concurrency and avoid rate-limiting
+    const geos  = await Promise.all(ugcCodes.map(code => fetchZoneGeomQueued(code)));
     // If a newer render has started, discard results to avoid ghost polygons
     if (gen !== renderGeneration) return;
-    let rendered = 0;
     geos.forEach(geo => {
         if (!geo) return;
         try {
@@ -1040,23 +1129,9 @@ async function renderAlertZones(feature, ugcCodes, color, gen) {
                 { sticky: true, direction: 'top' }
             );
             layer.addTo(alertLayer);
-            rendered++;
         } catch(e) {}
     });
-    // If every zone fetch failed, show a centroid dot so the alert isn't invisible
-    if (rendered === 0) {
-        const coords = getBestCoords(feature);
-        if (!coords) return;
-        const marker = L.circleMarker([coords.lat, coords.lon], {
-            radius: 8, color, weight: 1.5, fillColor: color, fillOpacity: 0.35, dashArray: '4 3'
-        });
-        marker.on('click', () => handleAlertClick(feature));
-        marker.bindTooltip(
-            `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${props.areaDesc || ''}</span>`,
-            { sticky: true, direction: 'top' }
-        );
-        marker.addTo(alertLayer);
-    }
+    // No centroid dot fallback as requested — if all zone fetches failed, silently skip
 }
 
 function toggleMapMode(btn) {
@@ -1072,7 +1147,7 @@ function toggleMapMode(btn) {
 
 // ═══════════════════════════════════════════════════════════
 // NWR MATCHING — works for polygon AND non-polygon alerts
-// For non-polygon alerts: fetch zone centroids, use them for NWR lookup
+// Offline stations are excluded from matching results
 // ═══════════════════════════════════════════════════════════
 function samplePolygonPoints(geometry) {
     const points = [];
@@ -1097,16 +1172,12 @@ function samplePolygonPoints(geometry) {
 
 async function getSamplePoints(feature) {
     if (feature.geometry) return samplePolygonPoints(feature.geometry);
-
-    // Non-polygon: use UGC zone centroids
     const ugcCodes = feature.properties?.geocode?.UGC || [];
     if (ugcCodes.length > 0) {
         const geos   = await Promise.all(ugcCodes.slice(0, 8).map(code => fetchZoneGeom(code)));
         const points = geos.map(g => geomCentroid(g)).filter(Boolean);
         if (points.length) return points;
     }
-
-    // Final fallback
     const coords = getBestCoords(feature);
     return coords ? [[coords.lat, coords.lon]] : [];
 }
@@ -1142,7 +1213,8 @@ async function handleAlertClick(feature) {
 
     const matched = [];
     for (const tx of transmitters) {
-        const station = nwrDatabase.find(s => s.callsign.toUpperCase() === tx);
+        // Exclude offline stations from NWR panel results
+        const station = nwrDatabase.find(s => s.callsign.toUpperCase() === tx && !isNWROffline(s));
         if (station && !matched.find(m => m.callsign === station.callsign)) matched.push(station);
     }
     renderNWRPanel(matched, event, areaDesc);
@@ -1180,7 +1252,6 @@ async function showAlertOnMap(realIdx) {
         return;
     }
 
-    // Non-polygon: fetch zone geometries and fit map to them
     const ugcCodes = feature.properties?.geocode?.UGC || [];
     if (ugcCodes.length > 0) {
         const geos = await Promise.all(ugcCodes.slice(0, 6).map(code => fetchZoneGeom(code)));
@@ -1214,7 +1285,18 @@ function renderNWRPanel(stations, event, areaDesc) {
     `).join('');
 }
 
+// ═══════════════════════════════════════════════════════════
+// ALERTS LIST — preserves open/scroll state across refreshes
+// ═══════════════════════════════════════════════════════════
 function renderAlertsList() {
+    // Before re-rendering, snapshot scroll positions of any open text boxes
+    document.querySelectorAll('.alert-full-text').forEach(el => {
+        const nwsId = el.closest('.alert-card-full')?.dataset?.nwsId;
+        if (nwsId && el.style.display === 'block') {
+            openAlertScrolls[nwsId] = el.scrollTop;
+        }
+    });
+
     const list   = document.getElementById('alerts-list');
     const searchQ = (document.getElementById('alerts-search-input')?.value || '').toLowerCase().trim();
     let filtered  = activeAlerts;
@@ -1263,6 +1345,16 @@ function renderAlertsList() {
             }</div>
         </div>`;
     }).join('');
+
+    // Restore scroll positions for re-opened text boxes
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.alert-full-text').forEach(el => {
+            const nwsId = el.closest('.alert-card-full')?.dataset?.nwsId;
+            if (nwsId && el.style.display === 'block' && openAlertScrolls[nwsId] != null) {
+                el.scrollTop = openAlertScrolls[nwsId];
+            }
+        });
+    });
 }
 
 function toggleAlertText(btn) {
@@ -1270,10 +1362,30 @@ function toggleAlertText(btn) {
     const text  = card.querySelector('.alert-full-text');
     const nwsId = card.dataset.nwsId;
     const open  = text.style.display === 'block';
-    text.style.display = open ? 'none' : 'block';
-    btn.textContent = open ? '▼ Full Text' : '▲ Hide Text';
-    if (nwsId) { open ? openAlertIds.delete(nwsId) : openAlertIds.add(nwsId); }
+    if (!open) {
+        text.style.display = 'block';
+        btn.textContent = '▲ Hide Text';
+        if (nwsId) openAlertIds.add(nwsId);
+        // Restore scroll position if we have one saved
+        if (nwsId && openAlertScrolls[nwsId] != null) {
+            requestAnimationFrame(() => { text.scrollTop = openAlertScrolls[nwsId]; });
+        }
+    } else {
+        // Save scroll position before closing
+        if (nwsId) openAlertScrolls[nwsId] = text.scrollTop;
+        text.style.display = 'none';
+        btn.textContent = '▼ Full Text';
+        if (nwsId) openAlertIds.delete(nwsId);
+    }
 }
+
+// Save scroll as user scrolls (so it's captured even if they don't close)
+document.addEventListener('scroll', e => {
+    if (e.target && e.target.classList && e.target.classList.contains('alert-full-text')) {
+        const nwsId = e.target.closest('.alert-card-full')?.dataset?.nwsId;
+        if (nwsId) openAlertScrolls[nwsId] = e.target.scrollTop;
+    }
+}, true);
 
 function setAlertFilter(key, el) {
     alertFilterKey = key;
@@ -1337,9 +1449,8 @@ function cycleRadarOnMap(btn) {
 
 // ═══════════════════════════════════════════════════════════
 // SPC WATCHES/MDs ON MAP
-// Watches: sourced directly from activeAlerts (correct data, no bad URL)
-// MDs:     fetched from SPC's own GeoJSON endpoint (not NWS API — NWS
-//          does not expose MDs as alert events)
+// Watches: sourced directly from activeAlerts
+// MDs:     fetched from IEM GeoJSON (has CORS headers)
 // ═══════════════════════════════════════════════════════════
 async function toggleSPCLayer(btn) {
     spcLayerOn = !spcLayerOn;
@@ -1371,10 +1482,10 @@ async function toggleSPCLayer(btn) {
                 layer.addTo(spcLayer);
             } catch(e) {}
         } else {
-            // Non-polygon watch — draw county zones
+            // Non-polygon watch — draw ALL county zones (no slice limit)
             const ugcCodes = feature.properties?.geocode?.UGC || [];
             if (ugcCodes.length > 0) {
-                const geos = await Promise.all(ugcCodes.slice(0, 12).map(code => fetchZoneGeom(code)));
+                const geos = await Promise.all(ugcCodes.map(code => fetchZoneGeomQueued(code)));
                 geos.forEach(geo => {
                     if (!geo) return;
                     try {
@@ -1393,33 +1504,68 @@ async function toggleSPCLayer(btn) {
         }
     }
 
-    // ── MDs: fetch directly from SPC GeoJSON (has CORS headers) ────────
-    // SPC publishes this file and updates it in real-time
-    try {
-        const res = await fetch('https://www.spc.noaa.gov/products/md/md_active.lyr.geojson');
-        if (res.ok) {
-            const data = await res.json();
-            (data.features || []).forEach(feature => {
-                const geo   = feature.geometry;
-                const props = feature.properties || {};
-                const num   = props.MNDNUM || props.mndnum || '';
-                const label = `MD #${num}`;
-                if (!geo) return;
-                try {
-                    const layer = L.geoJSON(geo, {
-                        style: { color: '#ff9800', weight: 2.5, opacity: 0.95, fillColor: '#ff9800', fillOpacity: 0.1, dashArray: '6 4' }
-                    });
-                    layer.bindTooltip(
-                        `<b style="color:#ff9800;">${label}</b>`,
-                        { sticky: true, direction: 'top' }
-                    );
-                    layer.addTo(spcLayer);
-                } catch(e) {}
-            });
-        }
-    } catch(e) {
-        // SPC endpoint not reachable — silently skip MD layer
+    // ── MDs: fetch from IEM GeoJSON (CORS-enabled) ─────────────────────
+    await drawMDsOnLayer(spcLayer);
+}
+
+// Parse SPC-format LAT...LON block into [lat, lon] pairs
+// Format: each coordinate is 8 digits = LLLL LLLL where first 4 = lat*100, last 4 = lon*100
+function parseSPCLatLon(text) {
+    const block = text.match(/LAT\.\.\.LON\s+([\d\s]+?)(?=\n\n|\$\$|&&|TIME|VALID|$)/si);
+    if (!block) return null;
+    const nums = block[1].replace(/\s+/g, ' ').trim().split(' ').filter(n => /^\d{8}$/.test(n));
+    if (nums.length < 3) return null;
+    const coords = nums.map(n => {
+        const lat = parseInt(n.substring(0, 4)) / 100;
+        const lon = -(parseInt(n.substring(4, 8)) / 100);
+        return [lon, lat]; // GeoJSON [lon, lat]
+    });
+    // Close the polygon
+    coords.push(coords[0]);
+    return { type: 'Polygon', coordinates: [coords] };
+}
+
+async function drawMDsOnLayer(targetLayer) {
+    // Try IEM GeoJSON first (best CORS support)
+    const MD_URLS = [
+        'https://mesonet.agron.iastate.edu/api/1/spcmcd.geojson',
+        'https://www.spc.noaa.gov/products/md/md_active.lyr.geojson',
+    ];
+    let mdFeatures = null;
+    for (const url of MD_URLS) {
+        try {
+            const ctrl  = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 8000);
+            const res   = await fetch(url, { signal: ctrl.signal });
+            clearTimeout(timer);
+            if (res.ok) {
+                const data = await res.json();
+                if ((data.features || []).length > 0) {
+                    mdFeatures = data.features;
+                    break;
+                }
+            }
+        } catch(e) { /* try next */ }
     }
+    if (!mdFeatures || !mdFeatures.length) return;
+
+    mdFeatures.forEach(feature => {
+        const geo   = feature.geometry;
+        const props = feature.properties || {};
+        const num   = props.MNDNUM || props.mndnum || props.id || '?';
+        const label = `MD #${num}`;
+        if (!geo) return;
+        try {
+            const layer = L.geoJSON(geo, {
+                style: { color: '#ff9800', weight: 2.5, opacity: 0.95, fillColor: '#ff9800', fillOpacity: 0.1, dashArray: '6 4' }
+            });
+            layer.bindTooltip(
+                `<b style="color:#ff9800;">${label}</b>`,
+                { sticky: true, direction: 'top' }
+            );
+            layer.addTo(targetLayer);
+        } catch(e) {}
+    });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1429,8 +1575,6 @@ async function loadSPCWatches() {
     const watchesEl = document.getElementById('spc-watches-list');
     const mdEl      = document.getElementById('spc-md-list');
 
-    // Watches from activeAlerts (populated by loadAlerts)
-    // Use a small retry loop in case alerts haven't loaded yet
     let attempts = 0;
     while (activeAlerts.length === 0 && attempts < 8) {
         await new Promise(r => setTimeout(r, 500));
@@ -1453,90 +1597,52 @@ async function loadSPCWatches() {
         }).join('');
     }
 
-    // MDs — try SPC GeoJSON, then IEM GeoJSON, then NWS text products API
+    // MDs — try IEM first, then SPC GeoJSON
     const MD_GEOJSON_URLS = [
-        'https://www.spc.noaa.gov/products/md/md_active.lyr.geojson',
         'https://mesonet.agron.iastate.edu/api/1/spcmcd.geojson',
+        'https://www.spc.noaa.gov/products/md/md_active.lyr.geojson',
     ];
     let mdFeatures = null;
     for (const url of MD_GEOJSON_URLS) {
         try {
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 6000);
-            const res = await fetch(url, { signal: ctrl.signal });
+            const ctrl  = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), 8000);
+            const res   = await fetch(url, { signal: ctrl.signal });
             clearTimeout(timer);
             if (res.ok) {
                 const data = await res.json();
                 mdFeatures = data.features || [];
-                break;
+                if (mdFeatures.length > 0) break;
             }
         } catch(e) { /* try next URL */ }
     }
 
-    // If GeoJSON sources failed or are empty, try NWS products API (always has CORS)
-    if (!mdFeatures || mdFeatures.length === 0) {
-        try {
-            const ctrl = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 6000);
-            const res = await fetch(
-                'https://api.weather.gov/products?type=MCD&location=KWNS&limit=20',
-                { headers: NWS_HEADERS, signal: ctrl.signal }
-            );
-            clearTimeout(timer);
-            if (res.ok) {
-                const data = await res.json();
-                const products = data['@graph'] || [];
-                if (products.length > 0) {
-                    mdEl.innerHTML = products.map(p => {
-                        const issued = p.issuanceTime ? new Date(p.issuanceTime).toLocaleString() : '';
-                        // Extract MD number from awipsId e.g. "MCDKWNS" — number comes from product text fetch
-                        const awips = p.awipsId || '';
-                        return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-                            <span style="color:var(--warning);font-weight:bold;">Mesoscale Discussion</span>
-                            <div style="color:#889;font-size:0.85em;margin-top:3px;">Issued: ${issued}</div>
-                        </div>`;
-                    }).join('') +
-                    `<div style="margin-top:6px;font-size:0.75em;">
-                        <a href="https://www.spc.noaa.gov/products/md/" target="_blank" style="color:var(--primary);">View full MDs on SPC ↗</a>
-                    </div>`;
-                    return;
-                }
-            }
-        } catch(e) {}
-    }
-
-    const spcLink = `<div style="margin-top:6px;font-size:0.75em;"><a href="https://www.spc.noaa.gov/products/md/" target="_blank" style="color:var(--primary);">Check SPC ↗</a></div>`;
+    const spcLink = `<div style="margin-top:6px;font-size:0.75em;"><a href="https://www.spc.noaa.gov/products/md/" target="_blank" style="color:var(--primary);">View all MDs on SPC ↗</a></div>`;
     if (mdFeatures === null) {
-        mdEl.innerHTML = 'Could not reach SPC. ' + spcLink;
+        mdEl.innerHTML = 'Could not reach MD sources.' + spcLink;
     } else if (!mdFeatures.length) {
         mdEl.innerHTML = 'No active Mesoscale Discussions.' + spcLink;
     } else {
         mdEl.innerHTML = mdFeatures.map(md => {
             const p   = md.properties || {};
-            const num = p.MNDNUM || p.mndnum || p.num || '?';
-            const txt = (p.DISCUSSI || p.text || p.product_id || '').substring(0, 180);
-            return `<div style="margin-bottom:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-                <span style="color:var(--warning);font-weight:bold;">MD #${num}</span>
-                <div style="color:#889;font-size:0.85em;margin-top:3px;">${txt}${txt.length >= 180 ? '…' : ''}</div>
+            const num = p.MNDNUM || p.mndnum || p.id || p.num || '?';
+            // IEM provides year in YEAR field, SPC uses MNDNUM
+            const issued = p.utc_issue || p.issued || '';
+            const issuedStr = issued ? new Date(issued).toLocaleString() : '';
+            // Excerpt of discussion text
+            const txt = (p.DISCUSSI || p.text || p.product_id || '').replace(/\s+/g, ' ').trim().substring(0, 200);
+            const mdUrl = num !== '?' ? `https://www.spc.noaa.gov/products/md/md${String(num).padStart(4,'0')}.html` : 'https://www.spc.noaa.gov/products/md/';
+            return `<div style="margin-bottom:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+                <a href="${mdUrl}" target="_blank" style="color:var(--warning);font-weight:bold;text-decoration:none;">MD #${num} ↗</a>
+                ${issuedStr ? `<span style="color:#667;font-size:0.8em;margin-left:8px;">${issuedStr}</span>` : ''}
+                ${txt ? `<div style="color:#889;font-size:0.82em;margin-top:4px;line-height:1.5;">${txt}${txt.length >= 200 ? '…' : ''}</div>` : ''}
             </div>`;
         }).join('') + spcLink;
     }
 }
 
-function updateSPCCountdown() {
-    const now  = new Date();
-    const next = new Date(now);
-    next.setUTCHours(12, 0, 0, 0);
-    if (now >= next) next.setUTCDate(next.getUTCDate() + 1);
-    const diff = next - now;
-    const h    = Math.floor(diff / 3600000);
-    const m    = Math.floor((diff % 3600000) / 60000);
-    document.getElementById('spc-countdown').textContent =
-        `Next SPC issuance: ${h}h ${m}m · ${now.toLocaleTimeString()}`;
-}
-
 // ═══════════════════════════════════════════════════════════
-// NWR ON MAIN MAP TOGGLE
+// NWR ON MAIN MAP TOGGLE — offline stations shown red
 // ═══════════════════════════════════════════════════════════
 function toggleNWROnMap(btn) {
     nwrMapLayerOn = !nwrMapLayerOn;
@@ -1555,16 +1661,20 @@ function renderNWROnMainMap() {
     if (!nwrMapLayerOn || !nwrDatabase.length) return;
     nwrMapLayer = L.layerGroup();
     nwrDatabase.forEach(s => {
-        const coords = stationCoords(s);
+        const coords  = stationCoords(s);
         if (!coords) return;
-        const marker = L.circleMarker(coords, {
-            radius: 5, color: '#00e676', weight: 1.5, fillColor: '#00e676', fillOpacity: 0.85
+        const offline = isNWROffline(s);
+        const color   = offline ? '#ff1744' : '#00e676';
+        const marker  = L.circleMarker(coords, {
+            radius: 5, color, weight: 1.5, fillColor: color, fillOpacity: 0.85
         });
         marker.bindTooltip(
-            `<b style="color:#00e676">${s.callsign}</b><br><span style="font-size:0.85em;">${s.location}</span>`,
+            `<b style="color:${color}">${s.callsign}</b>${offline ? ' [OFFLINE]' : ''}<br><span style="font-size:0.85em;">${s.location}</span>`,
             { sticky: true, direction: 'top' }
         );
-        marker.on('click', () => playNWR(s.callsign, s.stream_url, s.location));
+        if (!offline) {
+            marker.on('click', () => playNWR(s.callsign, s.stream_url, s.location));
+        }
         marker.addTo(nwrMapLayer);
     });
     nwrMapLayer.addTo(mapInstance);
@@ -1602,47 +1712,37 @@ async function searchMap(e) {
 }
 
 function flyToSearchResult(lat, lon, label) {
-  if (mapSearchMarker) {
-    mapInstance.removeLayer(mapSearchMarker);
-    mapSearchMarker = null;
-  }
-
-  // Create and add the marker
-  mapSearchMarker = L.marker([lat, lon], {
-    icon: L.divIcon({
-      className: '',
-      html: `<div style="background:var(--primary);border:2px solid white;border-radius:50%;width:12px;height:12px;box-shadow:0 0 10px rgba(79,195,247,0.9);"></div>`,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6]
-    })
-  }).addTo(mapInstance)
-    .bindPopup(`<b>${label}</b>`, { closeButton: false })
-    .openPopup();
-
-  // Fly to the location
-  mapInstance.flyTo([lat, lon], 10, { duration: 1.2 });
-
-  // UI Updates
-  document.getElementById('map-search-results').style.display = 'none';
-  document.getElementById('map-search-input').value = label.split(',')[0].trim();
-  document.getElementById('map-search-input').blur();
-
-  // Remove the marker after 5000ms (5 seconds)
-  setTimeout(() => {
     if (mapSearchMarker) {
-      mapInstance.removeLayer(mapSearchMarker);
-      mapSearchMarker = null;
+        mapInstance.removeLayer(mapSearchMarker);
+        mapSearchMarker = null;
     }
-  }, 5000);
+    mapSearchMarker = L.marker([lat, lon], {
+        icon: L.divIcon({
+            className: '',
+            html: `<div style="background:var(--primary);border:2px solid white;border-radius:50%;width:12px;height:12px;box-shadow:0 0 10px rgba(79,195,247,0.9);"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6]
+        })
+    }).addTo(mapInstance)
+        .bindPopup(`<b>${label}</b>`, { closeButton: false })
+        .openPopup();
+    mapInstance.flyTo([lat, lon], 10, { duration: 1.2 });
+    document.getElementById('map-search-results').style.display = 'none';
+    document.getElementById('map-search-input').value = label.split(',')[0].trim();
+    document.getElementById('map-search-input').blur();
+    setTimeout(() => {
+        if (mapSearchMarker) {
+            mapInstance.removeLayer(mapSearchMarker);
+            mapSearchMarker = null;
+        }
+    }, 5000);
 }
-
 
 function clearMapSearchResults() {
     const el = document.getElementById('map-search-results');
     if (el) el.style.display = 'none';
 }
 
-// Close search results on map click
 document.addEventListener('click', e => {
     if (!document.getElementById('map-search-wrap')?.contains(e.target)) {
         clearMapSearchResults();
