@@ -406,22 +406,23 @@ const IEM_NEXRAD_URL = 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/ne
 const IEM_SAT_WMS    = 'https://mesonet.agron.iastate.edu/cgi-bin/wms/goes/conus_ir.cgi?';
 
 const ALERT_COLORS = {
-    'Tornado Warning':             '#ff1744',
-    'Tornado Watch':               '#ffd600',
-    'Severe Thunderstorm Warning': '#ff6d00',
-    'Severe Thunderstorm Watch':   '#ffd600',
-    'Flash Flood Warning':         '#00c853',
-    'Flash Flood Watch':           '#adff2f',
-    'Flood Warning':               '#00bfa5',
-    'Flood Watch':                 '#64dd17',
-    'Winter Storm Warning':        '#aa00ff',
-    'Winter Storm Watch':          '#ce93d8',
-    'Blizzard Warning':            '#dd2c00',
-    'Ice Storm Warning':           '#f06292',
-    'High Wind Warning':           '#c6ff00',
-    'Wind Advisory':               '#b2ff59',
-    'Special Weather Statement':   '#4fc3f7',
-    'Areal Flood Advisory':        '#64ffda',
+    'Tornado Warning':             '#FF0000',
+    'Tornado Watch':               '#FFFF00',
+    'Severe Thunderstorm Warning': '#FFA500',
+    'Severe Thunderstorm Watch':   '#DB7093',
+    'Flash Flood Warning':         '#8B0000',
+    'Flash Flood Watch':           '#2E8B57',
+    'Flood Warning':               '#00FF00',
+    'Flood Watch':                 '#2E8B57',
+    'Winter Storm Warning':        '#FF69B4',
+    'Winter Storm Watch':          '#4682B4',
+    'Blizzard Warning':            '#FF4500',
+    'Ice Storm Warning':           '#8B008B',
+    'High Wind Warning':           '#DAA520',
+    'Wind Advisory':               '#D2B48C',
+    'Special Weather Statement':   '#FFE4B5',
+    'Flood Advisory':        '#00FF7F',
+    'Extreme Wind Warning':        '#FF8C00',
 };
 
 // SPC categorical outlook colors
@@ -442,13 +443,13 @@ function alertColor(event) {
         if (event.includes(words[0]) && event.includes(words[words.length-1])) return color;
     }
     const ev = event.toLowerCase();
-    if (ev.includes('tornado'))  return '#ff1744';
+    if (ev.includes('tornado'))  return '#fc0031';
     if (ev.includes('thunder'))  return '#ff6d00';
     if (ev.includes('flood'))    return '#00c853';
     if (ev.includes('winter'))   return '#aa00ff';
     if (ev.includes('wind'))     return '#c6ff00';
     if (ev.includes('watch'))    return '#ffd600';
-    if (ev.includes('warn'))     return '#ff1744';
+    if (ev.includes('warn'))     return '#b5092a';
     return '#4fc3f7';
 }
 
