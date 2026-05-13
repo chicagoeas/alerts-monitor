@@ -1,5 +1,13 @@
 [
   {
+    "callsign": "KIH54",
+    "info": "Degraded",
+    "stream_url": "https://broadcastify.cdnstream1.com/30979",
+    "location": "Birmingham, AL",
+    "latitude": 33.5206,
+    "longitude": -86.8025
+  },
+  {
     "callsign": "KEC61",
     "info": "Listen",
     "stream_url": "https://radio.weatherusa.net/NWR/KEC61_2.mp3",
@@ -33,7 +41,7 @@
   },
   {
     "callsign": "KIG78",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://radio.weatherusa.net/NWR/KIG78_2.mp3",
     "location": "Coachella, CA",
     "latitude": 33.6803,
@@ -73,7 +81,7 @@
   },
   {
     "callsign": "KEC57",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://broadcastify.cdnstream1.com/34488",
     "location": "Sacramento, CA",
     "latitude": 38.5816,
@@ -289,8 +297,8 @@
   },
   {
     "callsign": "KZZ81",
-    "info": "Offline",
-    "stream_url": "https://wxr.gwes-cdn.net/KZZ81",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/46216",
     "location": "Lockport, IL",
     "latitude": 41.5895,
     "longitude": -88.0578
@@ -334,6 +342,14 @@
     "location": "Indianapolis, IN",
     "latitude": 39.7684,
     "longitude": -86.1581
+  },
+  {
+    "callsign": "KJY62",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/46678",
+    "location": "Michigan City, IN",
+    "latitude": 41.7075,
+    "longitude": -86.8950
   },
   {
     "callsign": "WXJ57",
@@ -425,7 +441,7 @@
   },
   {
     "callsign": "WXM42",
-    "info": "Degraded",
+    "info": "Listen",
     "stream_url": "https://noaa-manassas-radio.from-va.com/Hagerstown.mp3",
     "location": "Hagerstown, MD",
     "latitude": 39.6418,
@@ -577,8 +593,8 @@
   },
   {
     "callsign": "WXL46",
-    "info": "Degraded",
-    "stream_url": "https://wxradio.org/MO-Springfield-WXL46",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/42757",
     "location": "Springfield, MO",
     "latitude": 37.209,
     "longitude": -93.2923
@@ -656,6 +672,14 @@
     "longitude": -103.6672
   },
   {
+    "callsign": "WXJ34",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/31878",
+    "location": "Albuquerque, NM",
+    "latitude": 35.0844, 
+    "longitude": -106.6504
+  },
+  {
     "callsign": "WXJ37",
     "info": "Listen",
     "stream_url": "https://radio.weatherusa.net/NWR/WXJ37.mp3",
@@ -665,7 +689,7 @@
   },
   {
     "callsign": "WWG20",
-    "info": "Degraded",
+    "info": "Offline",
     "stream_url": "https://radio.weatherusa.net/NWR/WWG20.mp3",
     "location": "Fernley, NV",
     "latitude": 39.608,
@@ -801,7 +825,7 @@
   },
   {
     "callsign": "KIH27",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://wxradio.org/OK-Tulsa-KIH27",
     "location": "Tulsa, OK",
     "latitude": 36.154,
@@ -889,7 +913,7 @@
   },
   {
     "callsign": "WXK63",
-    "info": "Degraded",
+    "info": "Offline",
     "stream_url": "https://radio.weatherusa.net/NWR/WXK63.mp3",
     "location": "Shelbyville, TN",
     "latitude": 35.4834,
@@ -974,6 +998,14 @@
     "location": "Tyler, TX",
     "latitude": 32.3513,
     "longitude": -95.3011
+  },
+  {
+    "callsign": "WXK67",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/45581",
+    "location": "San Antonio, TX",
+    "latitude": 29.4243, 
+    "longitude": -98.4911
   },
   {
     "callsign": "WXK35",
