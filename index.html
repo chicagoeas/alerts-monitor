@@ -1858,33 +1858,15 @@ async function loadSPCWatches() {
     } else if (!mdFeatures || !mdFeatures.length) {
         mdEl.innerHTML = 'No active Mesoscale Discussions.' + spcLink;
     } else {
-        // Clear previous MD layers if you track them globally or in a layerGroup
-        if (window.spcMdLayerGroup) {
-            window.spcMdLayerGroup.clearLayers();
-        } else {
-            window.spcMdLayerGroup = L.layerGroup().addTo(map);
-        }
-
         mdEl.innerHTML = mdFeatures.map(md => {
-            const p = md.properties || {};
+            const p   = md.properties || {};
             const num = p.MNDNUM || p.mndnum || p.id || p.num || '?';
+            // IEM provides year in YEAR field, SPC uses MNDNUM
             const issued = p.utc_issue || p.issued || '';
             const issuedStr = issued ? new Date(issued).toLocaleString() : '';
+            // Excerpt of discussion text
             const txt = (p.DISCUSSI || p.text || p.product_id || '').replace(/\s+/g, ' ').trim().substring(0, 200);
             const mdUrl = num !== '?' ? `https://www.spc.noaa.gov/products/md/md${String(num).padStart(4,'0')}.html` : 'https://www.spc.noaa.gov/products/md/';
-
-            // Add the geometry feature directly to the map layer group
-            if (md.geometry) {
-                L.geoJSON(md, {
-                    style: {
-                        color: '#ff5500',
-                        weight: 2,
-                        fillColor: '#ff5500',
-                        fillOpacity: 0.15
-                    }
-                }).bindPopup(`<a href="${mdUrl}" target="_blank">MD #${num}</a>`).addTo(window.spcMdLayerGroup);
-            }
-
             return `<div style="margin-bottom:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
                 <a href="${mdUrl}" target="_blank" style="color:var(--warning);font-weight:bold;text-decoration:none;">MD #${num} ↗</a>
                 ${issuedStr ? `<span style="color:#667;font-size:0.8em;margin-left:8px;">${issuedStr}</span>` : ''}
@@ -1892,6 +1874,7 @@ async function loadSPCWatches() {
             </div>`;
         }).join('') + spcLink;
     }
+}
 
 // ═══════════════════════════════════════════════════════════
 // NWR ON MAIN MAP TOGGLE — offline stations shown red
