@@ -184,7 +184,7 @@
 
 <div id="header">
     <h1>⛈ WCC <small>Weather Control Center</small></h1>
-    <div id="sync-indicator">● UPDATING</div>
+    <div id="sync-indicator">● LIVE</div>
 </div>
 
 <div id="alert-banner" onclick="switchTab('alerts', document.getElementById('nav-alerts'))"></div>
@@ -195,7 +195,7 @@
     <div id="map-tab" class="tab-content active">
         <div id="map-controls">
             <button class="map-btn active"  onclick="toggleAlertLayer(this)">⚠ Alerts</button>
-            <button class="map-btn"         id="map-mode-btn" onclick="toggleMapMode(this)">🛑 Polygons</button>
+            <button class="map-btn"         id="map-mode-btn" onclick="toggleMapMode(this)">🗂 Polygons</button>
             <button class="map-btn"         onclick="toggleCounties(this)">🗺 Counties</button>
             <button class="map-btn"         id="radar-cycle-btn" onclick="cycleRadarOnMap(this)">🌧 Radar: Off</button>
             <button class="map-btn"         id="spc-btn" onclick="toggleSPCLayer(this)">⚡ SPC Watch/MD</button>
@@ -292,7 +292,7 @@
         <div id="alerts-filter-bar">
             <div class="filter-chip active" onclick="setAlertFilter('all', this)">All</div>
             <div class="filter-chip" onclick="setAlertFilter('Tornado', this)">🌪 Tornado</div>
-            <div class="filter-chip" onclick="setAlertFilter('Thunderstorm', this)">⛈ T-Storm</div>
+            <div class="filter-chip" onclick="setAlertFilter('Thunderstorm', this)">⛈ Tstorm</div>
             <div class="filter-chip" onclick="setAlertFilter('Flood', this)">🌊 Flood</div>
             <div class="filter-chip" onclick="setAlertFilter('Wind', this)">💨 Wind</div>
             <div class="filter-chip" onclick="setAlertFilter('Winter', this)">❄ Winter</div>
@@ -1119,7 +1119,7 @@ async function loadAlerts() {
     showSync();
     try {
         const res  = await fetch(
-            'https://api.weather.gov/alerts/active',
+            'https://api.weather.gov/alerts/active?status=actual&message_type=alert',
             { headers: NWS_HEADERS }
         );
         const data = await res.json();
@@ -1161,25 +1161,12 @@ function updateAlertBanner() {
     if (!hasAlerts) return;
     const hasTorWarn  = activeAlerts.some(a => a.properties?.event?.includes('Tornado Warning'));
     const hasTorWatch = activeAlerts.some(a => a.properties?.event?.includes('Tornado Watch'));
-    const hasSvrWarn  = activeAlerts.some(a => a.properties?.event?.includes('Severe Thunderstorm Warning'));
-    const hasSvrWatch = activeAlerts.some(a => a.properties?.event?.inclues('Severe Thunderstorm Watch'));
-    const hasFfWarn = activeAlerts.some(a => a.properties?.event?.includes('Flash Flood Warning'));
-
     if (hasTorWarn) {
         banner.className = 'emergency';
         banner.textContent = `🌪 TORNADO WARNING IN EFFECT · ${activeAlerts.length} ACTIVE ALERTS`;
     } else if (hasTorWatch) {
-        banner.className = ''; banner.style.background = '#FFFF00'; banner.style.color = '#000';
-        banner.textContent = `🌪 TORNADO WATCH IN EFFECT · ${activeAlerts.length} ACTIVE ALERTS`;
-    } else if (hasSvrWarn) {
-        banner.className = ''; banner.style.background = '#FFA500'; banner.style.color = '#000';
-        banner.textContent = `⚡ SEVERE THUNDERSTORM WARNING IN EFFECT · ${activeAlerts.length} ACTIVE ALERTS`;
-    } else if (hasSvrWatch) {
-        banner.className = ''; banner.style.background = '#DB7093'; banner.style.color = '#000';
-        banner.textContent = `⚡ SEVERE THUNDERSTORM WATCH IN EFFECT · ${activeAlerts.length} ACTIVE ALERTS`;
-    } else if (hasFfWarn) {
-        banner.className = ''; banner.style.background = '#8B0000'; banner.style.color = '#000';
-        banner.textContent = `🌊 FLASH FLOOD WARNING IN EFFECT · ${activeAlerts.length} ACTIVE ALERTS`; 
+        banner.className = ''; banner.style.background = '#ffd600'; banner.style.color = '#000';
+        banner.textContent = `⚡ TORNADO WATCH IN EFFECT · ${activeAlerts.length} ACTIVE ALERTS`;
     } else {
         banner.className = ''; banner.style.background = ''; banner.style.color = 'white';
         banner.textContent = `⚠️ ${activeAlerts.length} ACTIVE NWS ALERTS — TAP TO VIEW`;
