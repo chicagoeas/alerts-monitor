@@ -104,7 +104,7 @@
         #audio-stop-btn { background: rgba(255,23,68,0.2); border: 1px solid var(--danger); color: var(--danger); padding: 6px 14px; border-radius: 20px; font-weight: bold; font-size: 0.78em; cursor: pointer; }
 
         /* NWR TAB */
-        #nwr-tab { overflow-y: auto; padding: 16px; gap: 0; }
+        #nwr-tab { overflow-y: auto; padding: 16px 16px 80px; gap: 0; }
         .section-title { font-weight: bold; font-size: 0.82em; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
         #nwr-coverage-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 260px; position: relative; }
         #nwr-coverage-map { width: 100%; height: 100%; }
@@ -128,7 +128,7 @@
         #nwr-count { font-size: 0.72em; color: #556; margin-bottom: 10px; font-family: monospace; }
 
         /* OUTLOOKS TAB */
-        #outlooks-tab { overflow-y: auto; padding: 16px; }
+        #outlooks-tab { overflow-y: auto; padding: 16px 16px 80px; }
         .outlook-day-tabs { display: flex; gap: 5px; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 10px; }
         .otab-btn { flex: 1; padding: 8px; border: none; background: transparent; color: #556; font-size: 0.78em; font-weight: bold; cursor: pointer; border-radius: 7px; transition: 0.2s; }
         .otab-btn.active { background: var(--primary); color: #000; }
@@ -143,7 +143,7 @@
         .toolkit-header { font-weight: bold; color: var(--primary); font-size: 0.82em; margin-bottom: 10px; display: flex; justify-content: space-between; text-transform: uppercase; letter-spacing: 0.5px; }
 
         /* ALERTS TAB */
-        #alerts-tab { overflow-y: auto; padding: 16px; }
+        #alerts-tab { overflow-y: auto; padding: 16px 16px 80px; }
         #alerts-list { display: flex; flex-direction: column; gap: 8px; }
         #alerts-search-box { display: flex; gap: 6px; margin-bottom: 10px; }
         #alerts-search-input { flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 12px; color: white; font-size: 0.82em; outline: none; }
@@ -184,7 +184,7 @@
 
 <div id="header">
     <h1>⛈ WCC <small>Weather Control Center</small></h1>
-    <div id="sync-indicator">● UPDATING</div>
+    <div id="sync-indicator">● LIVE</div>
 </div>
 
 <div id="alert-banner" onclick="switchTab('alerts', document.getElementById('nav-alerts'))"></div>
@@ -215,7 +215,10 @@
         <div id="map-legend">
             <div style="font-weight:bold; color:#556; margin-bottom:4px; font-size:0.9em; text-transform:uppercase; letter-spacing:1px;">LEGEND</div>
             <div class="legend-row"><div class="legend-dot" style="background:#ff1744;"></div> Tornado Warning</div>
-            <div class="legend-row"><div class="legend-dot" style="background:#ff6d00;"></div> Svr T-Storm Warn</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#ff6d00;"></div> Svr Tstorm Warn</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#ffd600;"></div> Watch</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#00e676;"></div> Advisory</div>
+            <div class="legend-row"><div class="legend-dot" style="background:#4fc3f7;"></div> Other</div>
         </div>
         <div id="map"></div>
     </div>
@@ -289,7 +292,7 @@
         <div id="alerts-filter-bar">
             <div class="filter-chip active" onclick="setAlertFilter('all', this)">All</div>
             <div class="filter-chip" onclick="setAlertFilter('Tornado', this)">🌪 Tornado</div>
-            <div class="filter-chip" onclick="setAlertFilter('Thunderstorm', this)">⛈ T-Storm</div>
+            <div class="filter-chip" onclick="setAlertFilter('Thunderstorm', this)">⛈ Tstorm</div>
             <div class="filter-chip" onclick="setAlertFilter('Flood', this)">🌊 Flood</div>
             <div class="filter-chip" onclick="setAlertFilter('Wind', this)">💨 Wind</div>
             <div class="filter-chip" onclick="setAlertFilter('Winter', this)">❄ Winter</div>
@@ -457,9 +460,6 @@ const ALERT_COLORS = {
     'Special Marine Warning':      '#FFA500',
     'Freeze Warning':              '#483D8B',
     'Red Flag Warning':            '#FF1493',
-    'Blowing Dust Advisory':       '#BDB76B',
-    'Dust Advisory':               '#BDB76B',
-    'Blowing Dust Warning':        '#FFE4C4',
     'Dust Storm Warning':          '#FFE4C4',
     'Hydrologic Outlook':          '#90EE90',
     'Frost Advisory':              '#6495ED',
@@ -475,73 +475,6 @@ const ALERT_COLORS = {
     'Beach Hazards Statement':     '#40E0D0',
     'Gale Watch':                  '#FFC0CB',
     'Fire Weather Watch':          '#FFDEAD',
-    // Civil alerts
-    'Civil Emergency Message':     '#FFB6C1',
-    'Civil Danger Warning':        '#FFB6C1',
-    'Law Enforcement Warning':     '#C0C0C0',
-    'Local Area Emergency':        '#C0C0C0',
-    '911 Telephone Outage':        '#C0C0C0',
-    'Administrative Message':      '#C0C0C0',
-    'Evacuation - Immediate':      '#7FFF00',
-    'Immediate Evacuation':        '#7FFF00',
-    'Nuclear Power Plant Warning': '#4B0082',
-    'Radiological Hazard Warning': '#4B0082',
-    'Hazardous Materials Warning': '#4B0082',
-    'Fire Warning':                '#A0522D',
-    'Volcano Warning':             '#2F4F4F',
-    'Shelter In Place Warning':    '#FA8072',
-    // Normally transparent alerts have been swiched to the "Test" color
-    'Child Abduction Emergency':   '#F0FFFF',
-    'Blue Alert':                  '#F0FFFF',
-    'Test':                        '#F0FFFF',
-    // Back to normal alerts
-    'Extreme Fire Danger':         '#E9967A',
-    'Air Stagnation Advisory':     '#808080',
-    'Tsunami Warning':             '#FD6347',
-    'Storm Surge Warning':         '#B524F7',
-    'Hurricane Force Wind Warning':'#CD5C5C',
-    'Hurricane Warning':           '#CD5C5C',
-    'Typhoon Warning':             '#CD5C5C',
-    'Snow Squall Warning':         '#C71585',
-    'Lake Effect Snow Warning':    '#008B8B',
-    'Tropical Storm Warning':      '#B22222',
-    'Storm Warning':               '#9400D3',
-    'Tsunami Advisory':            '#D2691E',
-    'Tsunami Watch':               '#FF00FF',
-    'Avalanche Warning':           '#1E90FF',
-    'Earthquake Warning':          '#8B4513',
-    'Ashfall Warning':             '#A9A9A9',
-    'Coastal Flood Warning':       '#228B22',
-    'Lakeshore Flood Warning':     '#228B22',
-    'Ashfall Advisory':            '#696969',
-    'High Surf Warning':           '#228B22',
-    'Extreme Cold Warning':        '#0000FF',
-    'Storm Surge Watch':           '#DB7FF7',
-    'Hurricane Watch':             '#FF00FF',
-    'Hurricane Force Wind Watch':  '#9932CC',
-    'Typhoon Watch':               '#FF00FF',
-    'Tropical Storm Watch':        '#F08080',
-    'Winter Weather Advisory':     '#7B68EE',
-    'Avalanche Advisory':          '#CD853F',
-    'Cold Weather Advisory':       '#AFEEEE',
-    'Coastal Flood Advisory':      '#7CFC00',
-    'Lakeshore Flood Advisory':    '#7CFC00',
-    'High Surf Advisory':          '#BA55D3',
-    'Dense Fog Advisory':          '#708090',
-    'Dense Smoke Advisory':        '#F0E68C',
-    'Hazardous Seas Warning':      '#D8BFD8',
-    'Freezing Fog Advisory':       '#008080',
-    'Freezing Spray Advisory':     '#00BFFF',
-    'Low Water Advisory':          '#A52A2A',
-    'Avalanche Watch':             '#F4A460',
-    'Hazardous Seas Watch':        '#483D8B',
-    'Heavy Freezing Spray Watch':  '#BC8F8F',
-    'Coastal Flood Watch':         '#66CDAA',
-    'Lakeshore Flood Watch':       '#66CDAA',
-    'High Wind Watch':             '#B8860B',
-    'Extreme Heat Watch':          '#800000',
-    'Extreme Cold Watch':          '#5F9EA0',
-    'Freeze Watch':                '#00FFFF',
 };
 
 // SPC categorical outlook colors
@@ -738,7 +671,7 @@ function loadSPCOutlook(day) {
     loadingEl.style.display = 'block';
     if (outlookLayer) outlookLayer.clearLayers();
 
-    const url = `https://www.spc.noaa.gov/products/outlook/day${day}otlk_cat.lyr.geojson`;
+    const url = `/api/proxy/spc-outlook?day=${day}`;
 
     fetch(url)
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
@@ -1116,7 +1049,7 @@ async function loadAlerts() {
     showSync();
     try {
         const res  = await fetch(
-            'https://api.weather.gov/alerts/active',
+            'https://api.weather.gov/alerts/active?status=actual&message_type=alert',
             { headers: NWS_HEADERS }
         );
         const data = await res.json();
@@ -1130,6 +1063,16 @@ async function loadAlerts() {
                 nextUrl = d2.pagination?.next;
             } catch(e) { break; }
         }
+        // Strip test/exercise alerts
+        activeAlerts = activeAlerts.filter(a => {
+            const p = a.properties || {};
+            const evtLower = (p.event || '').toLowerCase();
+            return p.status !== 'Test' &&
+                   p.messageType !== 'Test' &&
+                   !evtLower.includes('test message') &&
+                   !evtLower.includes('required weekly test') &&
+                   evtLower !== 'rwt';
+        });
         renderAlertsOnMap();
         renderAlertsList();
         updateAlertBanner();
@@ -1436,19 +1379,31 @@ async function handleAlertClick(feature) {
 function viewFullAlert() {
     if (!nwrPanelFeature) return;
     closeNWRPanel();
+    // Clear any filter so the alert is guaranteed to be visible
+    alertFilterKey = 'all';
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    const allChip = document.querySelector('.filter-chip[data-key="all"]');
+    if (allChip) allChip.classList.add('active');
     switchTab('alerts', document.getElementById('nav-alerts'));
-    setTimeout(() => scrollToAlertFeature(nwrPanelFeature), 80);
+    const feature = nwrPanelFeature;
+    // Retry scroll until the card is in the DOM (tab switch + render can lag)
+    let tries = 0;
+    function tryScroll() {
+        if (scrollToAlertFeature(feature)) return;
+        if (++tries < 12) setTimeout(tryScroll, 80);
+    }
+    setTimeout(tryScroll, 60);
 }
 
 function scrollToAlertFeature(feature) {
     const idx  = activeAlerts.indexOf(feature);
-    if (idx < 0) return;
+    if (idx < 0) return false;
     const card = document.getElementById(`alert-card-${idx}`);
-    if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.style.outline = '2px solid var(--primary)';
-        setTimeout(() => { card.style.outline = ''; }, 2000);
-    }
+    if (!card) return false;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.style.outline = '2px solid var(--primary)';
+    setTimeout(() => { card.style.outline = ''; }, 2000);
+    return true;
 }
 
 async function showAlertOnMap(realIdx) {
@@ -1488,14 +1443,20 @@ function renderNWRPanel(stations, event, areaDesc) {
             <span style="font-size:0.85em;">Browse the <b style="color:var(--primary)">NWR tab</b> manually.</span></div>`;
         return;
     }
-    list.innerHTML = stations.map(s => `
+    list.innerHTML = stations.map(s => {
+        const degraded  = isNWRDegraded(s);
+        const callColor = degraded ? 'color:var(--accent)' : '';
+        const badge     = degraded
+            ? `<span class="nwr-degraded-badge" style="margin-right:4px;" title="Signal quality may be poor">⚠ DEGRADED</span>`
+            : '';
+        return `
         <div class="nwr-station-card">
-            <div class="callsign">${s.callsign}</div>
-            <div class="loc">${s.location}</div>
+            <div class="callsign" style="${callColor}">${s.callsign}</div>
+            <div class="loc">${s.location}${badge ? '<br>' + badge : ''}</div>
             <button class="nwr-play-btn nwr-panel-play-btn" data-callsign="${s.callsign}"
                 onclick="playNWR('${escHtml(s.callsign)}','${escHtml(s.stream_url)}','${escHtml(s.location)}')">▶ Listen</button>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1536,13 +1497,16 @@ function renderAlertsList() {
         const nwsId   = (p.id || String(realIdx)).replace(/[^a-zA-Z0-9_-]/g, '_');
         const event   = p.event || 'Alert';
         const color   = alertColor(event);
-        const expires = p.expires ? new Date(p.expires).toLocaleString() : 'Unknown';
+        const expires  = p.expires  ? new Date(p.expires).toLocaleString()  : 'Unknown';
+        const issuedAt = p.sent || p.effective || p.onset || null;
+        const issued   = issuedAt ? new Date(issuedAt).toLocaleString() : null;
         const canMap  = !!a.geometry || (p.geocode?.UGC?.length > 0);
         const isOpen  = openAlertIds.has(nwsId);
         return `
         <div class="alert-card-full" id="alert-card-${realIdx}" data-nws-id="${nwsId}" style="border-left-color:${color};">
             <div class="event-name" style="color:${color};">${event}</div>
             <div class="area-desc">${p.areaDesc || ''}</div>
+            ${issued ? `<div class="alert-expires">Issued: ${issued}</div>` : ''}
             <div class="alert-expires">Expires: ${expires}</div>
             <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
                 <button class="alert-nwr-btn" onclick="switchTab('map',document.getElementById('nav-map')); setTimeout(()=>handleAlertClick(activeAlerts[${realIdx}]),150);">
@@ -1741,9 +1705,7 @@ function parseSPCLatLon(text) {
 async function drawMDsOnLayer(targetLayer) {
     // SPC/IEM return 404 when there are no active MDs — treat as empty, not an error
     const MD_URLS = [
-        'https://mesonet.agron.iastate.edu/geojson/spcmcd.geojson',
-        'https://mesonet.agron.iastate.edu/api/1/spcmcd.geojson',
-        'https://www.spc.noaa.gov/products/md/md_active.lyr.geojson',
+        '/api/proxy/spc-md',
     ];
     let mdFeatures = [];
     for (const url of MD_URLS) {
@@ -1811,11 +1773,9 @@ async function loadSPCWatches() {
         }).join('');
     }
 
-    // MDs — try IEM first, then SPC GeoJSON; 404 = no active MDs, not a real error
+    // MDs — fetched via server-side proxy (no CORS issues)
     const MD_GEOJSON_URLS = [
-        'https://mesonet.agron.iastate.edu/geojson/spcmcd.geojson',
-        'https://mesonet.agron.iastate.edu/api/1/spcmcd.geojson',
-        'https://www.spc.noaa.gov/products/md/md_active.lyr.geojson',
+        '/api/proxy/spc-md',
     ];
     let mdFeatures = null;
     let mdReachable = false;
