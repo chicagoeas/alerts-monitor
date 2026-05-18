@@ -768,6 +768,14 @@
     "longitude": -81.519
   },
   {
+    "callsign": "KIH42",
+    "info": "Listen",
+    "stream_url": "https://radio.weatherusa.net/NWR/KIH42_2.mp3",
+    "location": "Cincinnati, OH",
+    "latitude": 39.1034,
+    "longitude": -84.5118
+  },
+  {
     "callsign": "KIG86",
     "info": "Listen",
     "stream_url": "https://radio.weatherusa.net/NWR/KIG86.mp3",
