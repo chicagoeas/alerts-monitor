@@ -132,7 +132,7 @@
         .outlook-day-tabs { display: flex; gap: 5px; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 10px; }
         .otab-btn { flex: 1; padding: 8px; border: none; background: transparent; color: #556; font-size: 0.78em; font-weight: bold; cursor: pointer; border-radius: 7px; transition: 0.2s; }
         .otab-btn.active { background: var(--primary); color: #000; }
-        #outlook-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 480px; position: relative; }
+        #outlook-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 960px; position: relative; }
         #outlook-map { width: 100%; height: 100%; }
         #outlook-map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 900; background: rgba(7,19,29,0.9); border-radius: 10px; padding: 14px 20px; font-size: 0.8em; color: var(--primary); text-align: center; }
         .outlook-label { font-size: 0.72em; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
@@ -1789,34 +1789,73 @@ function parseSPCLatLon(text) {
     return { type: 'Polygon', coordinates: [coords] };
 }
 
-async function drawMDsOnLayer(targetLayer) {
-    // SPC/IEM return 404 when there are no active MDs — treat as empty, not an error
-    const MD_URLS = [
-        '/api/proxy/spc-md',
-    ];
-    let mdFeatures = [];
-    for (const url of MD_URLS) {
-        try {
-            const ctrl  = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 8000);
-            const res   = await fetch(url, { signal: ctrl.signal });
-            clearTimeout(timer);
-            // 404 from SPC/IEM means no active MDs — not a real error
-            if (res.status === 404) { mdFeatures = []; break; }
-            if (res.ok) {
-                const data = await res.json();
-                mdFeatures = data.features || [];
-                break; // Got a valid response (even if empty)
-            }
-        } catch(e) { /* network error — try next URL */ }
-    }
-    if (!mdFeatures.length) return;
+// ═══════════════════════════════════════════════════════════
+// SPC MDs — fetch directly from spc.noaa.gov (CORS: *)
+// 1. GET https://www.spc.noaa.gov/products/md/
+// 2. Parse <map name="mdimgmap"> → <area shape="poly" href="md####.html">
+// 3. For each MD href, GET that individual page
+// 4. Parse the LAT...LON block (SPC 8-digit format) using parseSPCLatLon
+// ═══════════════════════════════════════════════════════════
+async function fetchSPCMDs() {
+    try {
+        // Step 1 — listing page
+        const ctrl1  = new AbortController();
+        const timer1 = setTimeout(() => ctrl1.abort(), 10000);
+        const listRes = await fetch('https://www.spc.noaa.gov/products/md/', { signal: ctrl1.signal });
+        clearTimeout(timer1);
+        if (!listRes.ok) return [];
+        const listHtml = await listRes.text();
 
+        // Step 2 — find every <area shape="poly" href="md####.html"> inside mdimgmap
+        const mdNums = [];
+        const areaRe = /<area[^>]+shape=["']?poly["']?[^>]*>/gi;
+        let m;
+        while ((m = areaRe.exec(listHtml)) !== null) {
+            const hm = m[0].match(/href=["']?[^"'>]*md(\d{4})\.html["']?/i);
+            if (hm) {
+                const n = parseInt(hm[1], 10);
+                if (!isNaN(n) && !mdNums.includes(n)) mdNums.push(n);
+            }
+        }
+        if (!mdNums.length) return [];
+
+        // Step 3 — fetch each MD page and parse its LAT...LON block
+        const features = await Promise.all(mdNums.map(async num => {
+            const padded = String(num).padStart(4, '0');
+            const url    = `https://www.spc.noaa.gov/products/md/md${padded}.html`;
+            try {
+                const ctrl  = new AbortController();
+                const timer = setTimeout(() => ctrl.abort(), 8000);
+                const r     = await fetch(url, { signal: ctrl.signal });
+                clearTimeout(timer);
+                if (!r.ok) return null;
+                const html = await r.text();
+                // Product text is usually in a <pre> block; strip any inner HTML tags
+                const preM    = html.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+                const product = preM
+                    ? preM[1].replace(/<[^>]+>/g, '')
+                    : html.replace(/<[^>]+>/g, ' ');
+                const geom = parseSPCLatLon(product);
+                if (!geom) return null;
+                return {
+                    type: 'Feature',
+                    geometry: geom,
+                    properties: { num, MNDNUM: num, url }
+                };
+            } catch { return null; }
+        }));
+        return features.filter(Boolean);
+    } catch { return []; }
+}
+
+async function drawMDsOnLayer(targetLayer) {
+    const mdFeatures = await fetchSPCMDs();
+    if (!mdFeatures.length) return;
     mdFeatures.forEach(feature => {
         const geo   = feature.geometry;
         const props = feature.properties || {};
-        const num   = props.MNDNUM || props.mndnum || props.id || '?';
-        const label = `MD #${num}`;
+        const num   = props.MNDNUM || props.num || '?';
+        const label = `MD #${String(num).padStart(4, '0')}`;
         if (!geo) return;
         try {
             const layer = L.geoJSON(geo, {
@@ -1860,48 +1899,26 @@ async function loadSPCWatches() {
         }).join('');
     }
 
-    // MDs — fetched via server-side proxy (no CORS issues)
-    const MD_GEOJSON_URLS = [
-        '/api/proxy/spc-md',
-    ];
-    let mdFeatures = null;
-    let mdReachable = false;
-    for (const url of MD_GEOJSON_URLS) {
-        try {
-            const ctrl  = new AbortController();
-            const timer = setTimeout(() => ctrl.abort(), 8000);
-            const res   = await fetch(url, { signal: ctrl.signal });
-            clearTimeout(timer);
-            // SPC/IEM return 404 when there are no active MDs — treat as "no data"
-            if (res.status === 404) { mdFeatures = []; mdReachable = true; break; }
-            if (res.ok) {
-                const data = await res.json();
-                mdFeatures = data.features || [];
-                mdReachable = true;
-                break;
-            }
-        } catch(e) { /* try next URL */ }
-    }
-
+    // MDs — fetched directly from SPC (CORS: * so no proxy needed)
     const spcLink = `<div style="margin-top:6px;font-size:0.75em;"><a href="https://www.spc.noaa.gov/products/md/" target="_blank" style="color:var(--primary);">View all MDs on SPC ↗</a></div>`;
-    if (!mdReachable) {
-        mdEl.innerHTML = 'Could not reach MD sources.' + spcLink;
-    } else if (!mdFeatures || !mdFeatures.length) {
+    mdEl.innerHTML = '<span style="color:#556;font-size:0.82em;">Loading MDs…</span>';
+    let mdFeatures = null;
+    try {
+        mdFeatures = await fetchSPCMDs();
+    } catch { mdFeatures = null; }
+
+    if (mdFeatures === null) {
+        mdEl.innerHTML = 'Could not reach SPC.' + spcLink;
+    } else if (!mdFeatures.length) {
         mdEl.innerHTML = 'No active Mesoscale Discussions.' + spcLink;
     } else {
         mdEl.innerHTML = mdFeatures.map(md => {
             const p   = md.properties || {};
-            const num = p.MNDNUM || p.mndnum || p.id || p.num || '?';
-            // IEM provides year in YEAR field, SPC uses MNDNUM
-            const issued = p.utc_issue || p.issued || '';
-            const issuedStr = issued ? new Date(issued).toLocaleString() : '';
-            // Excerpt of discussion text
-            const txt = (p.DISCUSSI || p.text || p.product_id || '').replace(/\s+/g, ' ').trim().substring(0, 200);
-            const mdUrl = num !== '?' ? `https://www.spc.noaa.gov/products/md/md${String(num).padStart(4,'0')}.html` : 'https://www.spc.noaa.gov/products/md/';
+            const num = p.MNDNUM || p.num || '?';
+            const padded = num !== '?' ? String(num).padStart(4, '0') : '????';
+            const mdUrl = p.url || `https://www.spc.noaa.gov/products/md/md${padded}.html`;
             return `<div style="margin-bottom:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-                <a href="${mdUrl}" target="_blank" style="color:var(--warning);font-weight:bold;text-decoration:none;">MD #${num} ↗</a>
-                ${issuedStr ? `<span style="color:#667;font-size:0.8em;margin-left:8px;">${issuedStr}</span>` : ''}
-                ${txt ? `<div style="color:#889;font-size:0.82em;margin-top:4px;line-height:1.5;">${txt}${txt.length >= 200 ? '…' : ''}</div>` : ''}
+                <a href="${mdUrl}" target="_blank" style="color:var(--warning);font-weight:bold;text-decoration:none;">MD #${padded} ↗</a>
             </div>`;
         }).join('') + spcLink;
     }
