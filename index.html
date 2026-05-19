@@ -132,7 +132,7 @@
         .outlook-day-tabs { display: flex; gap: 5px; margin-bottom: 16px; background: rgba(0,0,0,0.3); padding: 5px; border-radius: 10px; }
         .otab-btn { flex: 1; padding: 8px; border: none; background: transparent; color: #556; font-size: 0.78em; font-weight: bold; cursor: pointer; border-radius: 7px; transition: 0.2s; }
         .otab-btn.active { background: var(--primary); color: #000; }
-        #outlook-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 960px; position: relative; }
+        #outlook-map-wrap { border-radius: 14px; overflow: hidden; border: 1px solid rgba(79,195,247,0.25); margin-bottom: 14px; height: 1400px; position: relative; }
         #outlook-map { width: 100%; height: 100%; }
         #outlook-map-loading { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); z-index: 900; background: rgba(7,19,29,0.9); border-radius: 10px; padding: 14px 20px; font-size: 0.8em; color: var(--primary); text-align: center; }
         .outlook-label { font-size: 0.72em; font-weight: bold; color: var(--primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
@@ -156,6 +156,13 @@
         .alert-card-full .alert-nwr-btn { margin-top: 8px; background: rgba(79,195,247,0.1); border: 1px solid rgba(79,195,247,0.25); color: var(--primary); padding: 5px 12px; border-radius: 20px; font-size: 0.72em; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .alert-card-full .alert-nwr-btn:hover { background: rgba(79,195,247,0.2); }
         .alert-full-text { display: none; margin-top: 10px; font-size: 0.78em; line-height: 1.6; white-space: pre-wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; color: rgba(255,255,255,0.85); max-height: 300px; overflow-y: auto; font-family: monospace; }
+        @keyframes alertBorderFlash {
+            0%   { box-shadow: none; }
+            35%  { box-shadow: -5px 0 18px 4px rgba(255,255,255,0.55), 0 0 22px 6px rgba(255,255,255,0.12); }
+            65%  { box-shadow: -5px 0 18px 4px rgba(255,255,255,0.55), 0 0 22px 6px rgba(255,255,255,0.12); }
+            100% { box-shadow: none; }
+        }
+        .alert-new-flash { animation: alertBorderFlash 0.75s ease-in-out 20; } /* 20 × 0.75s = 15s */
         #alerts-filter-bar { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
         .filter-chip { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #778; padding: 5px 12px; border-radius: 20px; font-size: 0.72em; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .filter-chip.active { background: rgba(255,23,68,0.15); border-color: var(--danger); color: #fff; }
@@ -385,6 +392,8 @@ let alertsFetching    = false;
 let renderGeneration  = 0;   // increment on every renderAlertsOnMap call
 const openAlertIds    = new Set();   // NWS alert IDs whose full-text panel is open
 const openAlertScrolls = {};         // nwsId -> scrollTop position within text box
+let previousAlertIds  = new Set();   // alert IDs from the previous fetch cycle
+let newAlertIds       = new Set();   // IDs that are new since last fetch (drives flash)
 
 // Caches
 const zoneGeoCache   = {};  // ugcCode -> GeoJSON geometry | null
@@ -1150,6 +1159,16 @@ async function loadAlerts() {
                    !evtLower.includes('required weekly test') &&
                    evtLower !== 'rwt';
         });
+
+        // Track which alerts are brand-new this cycle (drives flash animation)
+        const currentIds = new Set(activeAlerts.map(a => a.properties?.id).filter(Boolean));
+        if (previousAlertIds.size > 0) {
+            newAlertIds = new Set([...currentIds].filter(id => !previousAlertIds.has(id)));
+        } else {
+            newAlertIds = new Set(); // first load — don't flash everything
+        }
+        previousAlertIds = currentIds;
+
         renderAlertsOnMap();
         renderAlertsList();
         updateAlertBanner();
@@ -1293,10 +1312,10 @@ function renderAlertsOnMap() {
     if (mapMode === 'polygons') {
         activeAlerts.forEach(feature => {
             if (!feature.geometry) return;
-            const event = feature.properties.event || 'Alert';
-            const color = alertColor(event);
+            const event  = feature.properties.event || 'Alert';
+            const color  = alertColor(event);
+            const isNew  = feature.properties?.id && newAlertIds.has(feature.properties.id);
             try {
-                // No per-layer click handler — handled by map-level PIP (supports overlapping polygons)
                 const poly = L.geoJSON(feature.geometry, {
                     style: { color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.18 }
                 });
@@ -1305,6 +1324,7 @@ function renderAlertsOnMap() {
                     { sticky: true, direction: 'top' }
                 );
                 poly.addTo(alertLayer);
+                if (isNew) flashAlertLayer(poly, color, 2);
             } catch(e) {}
         });
     } else {
@@ -1313,10 +1333,10 @@ function renderAlertsOnMap() {
             const props = feature.properties || {};
             const event = props.event || 'Alert';
             const color = alertColor(event);
+            const isNew = props.id && newAlertIds.has(props.id);
 
             if (feature.geometry) {
                 try {
-                    // No per-layer click handler — handled by map-level PIP (supports overlapping polygons)
                     const poly = L.geoJSON(feature.geometry, {
                         style: { color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.18 }
                     });
@@ -1325,20 +1345,38 @@ function renderAlertsOnMap() {
                         { sticky: true, direction: 'top' }
                     );
                     poly.addTo(alertLayer);
+                    if (isNew) flashAlertLayer(poly, color, 2);
                 } catch(e) {}
             } else {
                 const ugcCodes = props.geocode?.UGC || [];
                 if (ugcCodes.length > 0) {
-                    // No slice limit — fetch ALL zones for this alert
-                    renderAlertZones(feature, ugcCodes, color, gen);
+                    renderAlertZones(feature, ugcCodes, color, gen, isNew);
                 }
-                // No centroid dot fallback — if no UGC codes, skip silently
             }
         });
     }
 }
 
-async function renderAlertZones(feature, ugcCodes, color, gen) {
+// Flash a Leaflet GeoJSON layer's border weight for ~15s to signal a new alert
+function flashAlertLayer(leafletLayer, color, baseWeight) {
+    let cnt = 0;
+    const iv = setInterval(() => {
+        cnt++;
+        if (cnt >= 30) {
+            clearInterval(iv);
+            try { leafletLayer.setStyle({ weight: baseWeight, opacity: 0.9 }); } catch {}
+            return;
+        }
+        try {
+            leafletLayer.setStyle({
+                weight:  cnt % 2 === 0 ? baseWeight : baseWeight + 3,
+                opacity: cnt % 2 === 0 ? 0.85 : 1
+            });
+        } catch { clearInterval(iv); }
+    }, 500); // 30 × 500ms = 15s
+}
+
+async function renderAlertZones(feature, ugcCodes, color, gen, isNew = false) {
     const props = feature.properties || {};
     const event = props.event || 'Alert';
     // Use queued fetcher to limit concurrency and avoid rate-limiting
@@ -1362,6 +1400,7 @@ async function renderAlertZones(feature, ugcCodes, color, gen) {
                 { sticky: true, direction: 'top' }
             );
             layer.addTo(alertLayer);
+            if (isNew) flashAlertLayer(layer, color, 1.5);
         } catch(e) {}
     });
     // No centroid dot fallback as requested — if all zone fetches failed, silently skip
@@ -1589,8 +1628,9 @@ function renderAlertsList() {
         const issued   = issuedAt ? new Date(issuedAt).toLocaleString() : null;
         const canMap  = !!a.geometry || (p.geocode?.UGC?.length > 0);
         const isOpen  = openAlertIds.has(nwsId);
+        const isNew   = p.id && newAlertIds.has(p.id);
         return `
-        <div class="alert-card-full" id="alert-card-${realIdx}" data-nws-id="${nwsId}" style="border-left-color:${color};">
+        <div class="alert-card-full${isNew ? ' alert-new-flash' : ''}" id="alert-card-${realIdx}" data-nws-id="${nwsId}" style="border-left-color:${color};">
             <div class="event-name" style="color:${color};">${event}</div>
             <div class="area-desc">${p.areaDesc || ''}</div>
             ${issued ? `<div class="alert-expires">Issued: ${issued}</div>` : ''}
@@ -1730,41 +1770,35 @@ async function toggleSPCLayer(btn) {
     );
 
     for (const feature of watchAlerts) {
-        const event = feature.properties?.event || 'Watch';
-        const color = alertColor(event);
+        const event    = feature.properties?.event || 'Watch';
+        const color    = alertColor(event);
+        const tooltip  = `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${feature.properties?.areaDesc || ''}</span>`;
+        const watchStyle = { color, weight: 3, opacity: 1, fillColor: color, fillOpacity: 0.12, dashArray: '10 5' };
 
+        // Draw the overall watch-box polygon when present (shows immediately)
         if (feature.geometry) {
             try {
-                const layer = L.geoJSON(feature.geometry, {
-                    style: { color, weight: 3, opacity: 1, fillColor: color, fillOpacity: 0.12, dashArray: '10 5' }
-                });
+                const layer = L.geoJSON(feature.geometry, { style: watchStyle });
                 layer.on('click', () => handleAlertClick(feature));
-                layer.bindTooltip(
-                    `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${feature.properties?.areaDesc || ''}</span>`,
-                    { sticky: true, direction: 'top' }
-                );
+                layer.bindTooltip(tooltip, { sticky: true, direction: 'top' });
                 layer.addTo(spcLayer);
             } catch(e) {}
-        } else {
-            // Non-polygon watch — draw ALL county zones (no slice limit)
-            const ugcCodes = feature.properties?.geocode?.UGC || [];
-            if (ugcCodes.length > 0) {
-                const geos = await Promise.all(ugcCodes.map(code => fetchZoneGeomQueued(code)));
-                geos.forEach(geo => {
-                    if (!geo) return;
-                    try {
-                        const layer = L.geoJSON(geo, {
-                            style: { color, weight: 3, opacity: 1, fillColor: color, fillOpacity: 0.12, dashArray: '10 5' }
-                        });
-                        layer.on('click', () => handleAlertClick(feature));
-                        layer.bindTooltip(
-                            `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${feature.properties?.areaDesc || ''}</span>`,
-                            { sticky: true, direction: 'top' }
-                        );
-                        layer.addTo(spcLayer);
-                    } catch(e) {}
-                });
-            }
+        }
+
+        // ALSO draw every UGC county/zone polygon for precise county-level coverage
+        const ugcCodes = feature.properties?.geocode?.UGC || [];
+        if (ugcCodes.length > 0) {
+            const countyStyle = { color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.18, dashArray: '7 4' };
+            const geos = await Promise.all(ugcCodes.map(code => fetchZoneGeomQueued(code)));
+            geos.forEach(geo => {
+                if (!geo) return;
+                try {
+                    const layer = L.geoJSON(geo, { style: countyStyle });
+                    layer.on('click', () => handleAlertClick(feature));
+                    layer.bindTooltip(tooltip, { sticky: true, direction: 'top' });
+                    layer.addTo(spcLayer);
+                } catch(e) {}
+            });
         }
     }
 
