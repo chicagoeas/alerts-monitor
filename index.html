@@ -191,7 +191,7 @@
 
 <div id="header">
     <h1>⛈ WCC <small>Weather Control Center</small></h1>
-    <div id="sync-indicator">● LIVE</div>
+    <div id="sync-indicator">● UPDATING</div>
 </div>
 
 <div id="alert-banner" onclick="switchTab('alerts', document.getElementById('nav-alerts'))"></div>
@@ -205,7 +205,7 @@
             <button class="map-btn"         id="map-mode-btn" onclick="toggleMapMode(this)">🗂 Polygons</button>
             <button class="map-btn"         onclick="toggleCounties(this)">🗺 Counties</button>
             <button class="map-btn"         id="radar-cycle-btn" onclick="cycleRadarOnMap(this)">🌧 Radar: Off</button>
-            <button class="map-btn"         id="spc-btn" onclick="toggleSPCLayer(this)">⚡ SPC Watch/MD</button>
+            <button class="map-btn"         id="spc-btn" onclick="toggleSPCLayer(this)">⚡ SPC Watches/MDs</button>
             <button class="map-btn"         id="nwr-map-btn" onclick="toggleNWROnMap(this)">📻 NWR: Off</button>
         </div>
         <div id="map-search-wrap">
@@ -246,6 +246,7 @@
                 <b style="color:var(--primary);">How it works:</b> Click any alert on the MAP tab to automatically find the NWR station(s)
                 covering that alert area. You can also browse and play any station below.
                 <br><span style="color:var(--danger);">● Offline</span> stations are not playable.
+                <br><span style="color:#ffd54f;">● Degraded</span> stations are online, but may have lots of static, or may be quiet.
             </div>
         </div>
         <div id="nwr-list">
@@ -275,13 +276,13 @@
             <div id="outlook-map-loading"><div class="spinner" style="display:inline-block;margin-bottom:6px;"></div><br>Loading outlook...</div>
             <div id="outlook-map"></div>
         </div>
-        <div class="section-title" style="margin-top:8px;">🌪 Watches &amp; MDs</div>
+        <div class="section-title" style="margin-top:8px;">Watches &amp; MDs</div>
         <div class="toolkit-box">
             <div class="toolkit-header">Active SPC Watches</div>
             <div id="spc-watches-list" style="font-size:0.82em; color:#889;">Loading...</div>
         </div>
         <div class="toolkit-box">
-            <div class="toolkit-header">Mesoscale Discussions</div>
+            <div class="toolkit-header">Active SPC Mesoscale Discussions</div>
             <div id="spc-md-list" style="font-size:0.82em; color:#889;">Loading...</div>
         </div>
     </div>
@@ -296,7 +297,7 @@
         <div id="alerts-filter-bar">
             <div class="filter-chip active" onclick="setAlertFilter('all', this)">All</div>
             <div class="filter-chip" onclick="setAlertFilter('Tornado', this)">🌪 Tornado</div>
-            <div class="filter-chip" onclick="setAlertFilter('Thunderstorm', this)">⛈ Tstorm</div>
+            <div class="filter-chip" onclick="setAlertFilter('Thunderstorm', this)">⛈ T-Storm</div>
             <div class="filter-chip" onclick="setAlertFilter('Flood', this)">🌊 Flood</div>
             <div class="filter-chip" onclick="setAlertFilter('Wind', this)">💨 Wind</div>
             <div class="filter-chip" onclick="setAlertFilter('Winter', this)">❄ Winter</div>
