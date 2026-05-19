@@ -367,6 +367,7 @@ let nwrCoverageMap    = null;
 let nwrCoverageLayer  = null;
 let outlookMap        = null;
 let outlookLayer      = null;
+let outlookTabOpened  = false;   // defer first load until tab is visible
 let currentAudioUrl   = null;
 let currentCallsign   = null;
 let alertFilterKey    = 'all';
@@ -460,6 +461,9 @@ const ALERT_COLORS = {
     'Special Marine Warning':      '#FFA500',
     'Freeze Warning':              '#483D8B',
     'Red Flag Warning':            '#FF1493',
+    'Blowing Dust Advisory':       '#BDB76B',
+    'Dust Advisory':               '#BDB76B',
+    'Blowing Dust Warning':        '#FFE4C4',
     'Dust Storm Warning':          '#FFE4C4',
     'Hydrologic Outlook':          '#90EE90',
     'Frost Advisory':              '#6495ED',
@@ -475,6 +479,73 @@ const ALERT_COLORS = {
     'Beach Hazards Statement':     '#40E0D0',
     'Gale Watch':                  '#FFC0CB',
     'Fire Weather Watch':          '#FFDEAD',
+    // Civil alerts
+    'Civil Emergency Message':     '#FFB6C1',
+    'Civil Danger Warning':        '#FFB6C1',
+    'Law Enforcement Warning':     '#C0C0C0',
+    'Local Area Emergency':        '#C0C0C0',
+    '911 Telephone Outage':        '#C0C0C0',
+    'Administrative Message':      '#C0C0C0',
+    'Evacuation - Immediate':      '#7FFF00',
+    'Immediate Evacuation':        '#7FFF00',
+    'Nuclear Power Plant Warning': '#4B0082',
+    'Radiological Hazard Warning': '#4B0082',
+    'Hazardous Materials Warning': '#4B0082',
+    'Fire Warning':                '#A0522D',
+    'Volcano Warning':             '#2F4F4F',
+    'Shelter In Place Warning':    '#FA8072',
+    // Normally transparent alerts have been swiched to the "Test" color
+    'Child Abduction Emergency':   '#F0FFFF',
+    'Blue Alert':                  '#F0FFFF',
+    'Test':                        '#F0FFFF',
+    // Back to normal alerts
+    'Extreme Fire Danger':         '#E9967A',
+    'Air Stagnation Advisory':     '#808080',
+    'Tsunami Warning':             '#FD6347',
+    'Storm Surge Warning':         '#B524F7',
+    'Hurricane Force Wind Warning':'#CD5C5C',
+    'Hurricane Warning':           '#CD5C5C',
+    'Typhoon Warning':             '#CD5C5C',
+    'Snow Squall Warning':         '#C71585',
+    'Lake Effect Snow Warning':    '#008B8B',
+    'Tropical Storm Warning':      '#B22222',
+    'Storm Warning':               '#9400D3',
+    'Tsunami Advisory':            '#D2691E',
+    'Tsunami Watch':               '#FF00FF',
+    'Avalanche Warning':           '#1E90FF',
+    'Earthquake Warning':          '#8B4513',
+    'Ashfall Warning':             '#A9A9A9',
+    'Coastal Flood Warning':       '#228B22',
+    'Lakeshore Flood Warning':     '#228B22',
+    'Ashfall Advisory':            '#696969',
+    'High Surf Warning':           '#228B22',
+    'Extreme Cold Warning':        '#0000FF',
+    'Storm Surge Watch':           '#DB7FF7',
+    'Hurricane Watch':             '#FF00FF',
+    'Hurricane Force Wind Watch':  '#9932CC',
+    'Typhoon Watch':               '#FF00FF',
+    'Tropical Storm Watch':        '#F08080',
+    'Winter Weather Advisory':     '#7B68EE',
+    'Avalanche Advisory':          '#CD853F',
+    'Cold Weather Advisory':       '#AFEEEE',
+    'Coastal Flood Advisory':      '#7CFC00',
+    'Lakeshore Flood Advisory':    '#7CFC00',
+    'High Surf Advisory':          '#BA55D3',
+    'Dense Fog Advisory':          '#708090',
+    'Dense Smoke Advisory':        '#F0E68C',
+    'Hazardous Seas Warning':      '#D8BFD8',
+    'Freezing Fog Advisory':       '#008080',
+    'Freezing Spray Advisory':     '#00BFFF',
+    'Low Water Advisory':          '#A52A2A',
+    'Avalanche Watch':             '#F4A460',
+    'Hazardous Seas Watch':        '#483D8B',
+    'Heavy Freezing Spray Watch':  '#BC8F8F',
+    'Coastal Flood Watch':         '#66CDAA',
+    'Lakeshore Flood Watch':       '#66CDAA',
+    'High Wind Watch':             '#B8860B',
+    'Extreme Heat Watch':          '#800000',
+    'Extreme Cold Watch':          '#5F9EA0',
+    'Freeze Watch':                '#00FFFF',
 };
 
 // SPC categorical outlook colors
@@ -527,8 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initOutlookMap();
     loadNWRDatabase();
     loadAlerts();
-    loadSPCOutlook(1);
-    loadSPCWatches();
+    // loadSPCOutlook deferred to first tab open — map must have non-zero size
     updateSPCCountdown();
     setInterval(loadAlerts, 8000);
     setInterval(updateSPCCountdown, 1000);  // tick every second for accurate countdown
@@ -575,7 +645,14 @@ function switchTab(name, navEl) {
         setTimeout(() => {
             outlookMap.invalidateSize();
             outlookMap.fitBounds(CONUS_BOUNDS);
-        }, 50);
+            // Load outlook data the first time the tab becomes visible
+            // (loading while hidden causes Leaflet to render at zero-size)
+            if (!outlookTabOpened) {
+                outlookTabOpened = true;
+                loadSPCOutlook(activeSPCDay);
+                loadSPCWatches();
+            }
+        }, 100);
     }
     // NOTE: we do NOT clear openAlertIds on tab switch so reading state is preserved
 }
@@ -671,7 +748,7 @@ function loadSPCOutlook(day) {
     loadingEl.style.display = 'block';
     if (outlookLayer) outlookLayer.clearLayers();
 
-    const url = `/api/proxy/spc-outlook?day=${day}`;
+    const url = `https://www.spc.noaa.gov/products/outlook/day${day}otlk_cat.lyr.geojson`;
 
     fetch(url)
         .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
@@ -1379,20 +1456,30 @@ async function handleAlertClick(feature) {
 function viewFullAlert() {
     if (!nwrPanelFeature) return;
     closeNWRPanel();
-    // Clear any filter so the alert is guaranteed to be visible
-    alertFilterKey = 'all';
-    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-    const allChip = document.querySelector('.filter-chip[data-key="all"]');
-    if (allChip) allChip.classList.add('active');
-    switchTab('alerts', document.getElementById('nav-alerts'));
     const feature = nwrPanelFeature;
-    // Retry scroll until the card is in the DOM (tab switch + render can lag)
+
+    // Reset filter (chips have no data-key; select first chip = "All")
+    alertFilterKey = 'all';
+    const chips = document.querySelectorAll('.filter-chip');
+    chips.forEach((c, i) => c.classList.toggle('active', i === 0));
+
+    // Clear search so the card is guaranteed visible
+    const searchEl = document.getElementById('alerts-search-input');
+    if (searchEl) searchEl.value = '';
+
+    // Re-render with no filter BEFORE switching tab so the card exists in the DOM
+    renderAlertsList();
+
+    switchTab('alerts', document.getElementById('nav-alerts'));
+
+    // Retry scroll — card must be in DOM and the tab container must be visible
     let tries = 0;
     function tryScroll() {
         if (scrollToAlertFeature(feature)) return;
-        if (++tries < 12) setTimeout(tryScroll, 80);
+        if (++tries < 20) setTimeout(tryScroll, 60);
     }
-    setTimeout(tryScroll, 60);
+    // First attempt after DOM paint + tab animation
+    requestAnimationFrame(() => setTimeout(tryScroll, 80));
 }
 
 function scrollToAlertFeature(feature) {
