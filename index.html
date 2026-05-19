@@ -157,12 +157,12 @@
         .alert-card-full .alert-nwr-btn:hover { background: rgba(79,195,247,0.2); }
         .alert-full-text { display: none; margin-top: 10px; font-size: 0.78em; line-height: 1.6; white-space: pre-wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 10px; color: rgba(255,255,255,0.85); max-height: 300px; overflow-y: auto; font-family: monospace; }
         @keyframes alertBorderFlash {
-            0%   { box-shadow: none; }
-            35%  { box-shadow: -5px 0 18px 4px rgba(255,255,255,0.55), 0 0 22px 6px rgba(255,255,255,0.12); }
-            65%  { box-shadow: -5px 0 18px 4px rgba(255,255,255,0.55), 0 0 22px 6px rgba(255,255,255,0.12); }
-            100% { box-shadow: none; }
+            0%   { background: rgba(0,0,0,0.3); box-shadow: none; }
+            50%  { background: rgba(255,255,255,0.11); box-shadow: -6px 0 22px 5px rgba(255,255,255,0.5), 0 0 28px 8px rgba(255,255,255,0.15); }
+            100% { background: rgba(0,0,0,0.3); box-shadow: none; }
         }
-        .alert-new-flash { animation: alertBorderFlash 0.75s ease-in-out 20; } /* 20 × 0.75s = 15s */
+        .alert-new-flash { animation: alertBorderFlash 0.8s ease-in-out 19; transition: none !important; } /* 19 × 0.8s ≈ 15s */
+        .alert-new-badge { display:inline-block; background:#ff1744; color:#fff; font-size:0.62em; font-weight:bold; padding:1px 6px; border-radius:8px; margin-left:7px; vertical-align:middle; letter-spacing:0.5px; }
         #alerts-filter-bar { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
         .filter-chip { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #778; padding: 5px 12px; border-radius: 20px; font-size: 0.72em; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .filter-chip.active { background: rgba(255,23,68,0.15); border-color: var(--danger); color: #fff; }
@@ -191,7 +191,7 @@
 
 <div id="header">
     <h1>⛈ WCC <small>Weather Control Center</small></h1>
-    <div id="sync-indicator">● UPDATING</div>
+    <div id="sync-indicator">● LIVE</div>
 </div>
 
 <div id="alert-banner" onclick="switchTab('alerts', document.getElementById('nav-alerts'))"></div>
@@ -868,7 +868,7 @@ function updateSPCCountdown() {
     el.textContent = `D${activeSPCDay} next issuance: ${h}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s · ${localStr}`;
 }
 
-// ═══════════════════════════════════════════════════════════
+// ═════════════════  �═════════════════════════════════════════
 // NWR DATABASE + COVERAGE MAP
 // ═══════════════════════════════════════════════════════════
 async function loadNWRDatabase() {
@@ -1132,7 +1132,7 @@ async function loadAlerts() {
     showSync();
     try {
         const res  = await fetch(
-            'https://api.weather.gov/alerts/active?status=actual&message_type=alert',
+            'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update',
             { headers: NWS_HEADERS }
         );
         const data = await res.json();
@@ -1582,7 +1582,7 @@ function renderNWRPanel(stations, event, areaDesc) {
     }).join('');
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════���══════
 // ALERTS LIST — preserves open/scroll state across refreshes
 // ═══════════════════════════════════════════════════════════
 function renderAlertsList() {
@@ -1628,7 +1628,7 @@ function renderAlertsList() {
         const isNew   = p.id && newAlertIds.has(p.id);
         return `
         <div class="alert-card-full${isNew ? ' alert-new-flash' : ''}" id="alert-card-${realIdx}" data-nws-id="${nwsId}" style="border-left-color:${color};">
-            <div class="event-name" style="color:${color};">${event}</div>
+            <div class="event-name" style="color:${color};">${event}${isNew ? '<span class="alert-new-badge">NEW</span>' : ''}</div>
             <div class="area-desc">${p.areaDesc || ''}</div>
             ${issued ? `<div class="alert-expires">Issued: ${issued}</div>` : ''}
             <div class="alert-expires">Expires: ${expires}</div>
