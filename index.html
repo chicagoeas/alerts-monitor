@@ -1133,7 +1133,7 @@ async function loadAlerts() {
     showSync();
     try {
         const res  = await fetch(
-            'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update',
+            'https://api.weather.gov/alerts/active',
             { headers: NWS_HEADERS }
         );
         const data = await res.json();
