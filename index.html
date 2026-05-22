@@ -1794,43 +1794,23 @@ async function toggleSPCLayer(btn) {
     await drawMDsOnLayer(spcLayer);
 }
 
-// ═══════════════════════════════════════════════════════════
-// SPC MD COORDINATE PARSER
-//
-// SPC LAT...LON format uses space-separated pairs:
-//   4-digit lat (e.g. 3607 = 36.07°N) followed by
-//   4 or 5-digit lon (e.g. 9793 = 97.93°W, 10233 = 102.33°W)
-//
-// The old code incorrectly filtered for 8-digit combined numbers,
-// which matched unrelated strings like dates (20241215) and
-// placed polygons in Spain/Africa. This version correctly parses
-// the standard paired format and validates coordinates.
-// ═══════════════════════════════════════════════════════════
+// Parse SPC-format LAT...LON block into [lat, lon] pairs
+// Format: each coordinate is 8 digits = LLLL LLLL where first 4 = lat*100, last 4 = lon*100
+// Coordinate validation filters out spurious 8-digit matches (e.g. date strings like
+// 20241215 → lat 20.24, lon -12.15 which falls outside US bounds → discarded).
 function parseSPCLatLon(text) {
     const block = text.match(/LAT\.\.\.LON\s+([\d\s]+?)(?=\n\n|\$\$|&&|TIME|VALID|$)/si);
     if (!block) return null;
-
-    // Extract all 4-or-5-digit tokens (lat values are 4 digits, lon values are 4 or 5)
-    const tokens = block[1].replace(/\s+/g, ' ').trim().split(' ').filter(n => /^\d{4,5}$/.test(n));
-    if (tokens.length < 6) return null;
-
-    const coords = [];
-    for (let i = 0; i + 1 < tokens.length; i += 2) {
-        const latRaw = parseInt(tokens[i],     10);
-        const lonRaw = parseInt(tokens[i + 1], 10);
-        const lat = latRaw / 100;
-        const lon = -(lonRaw / 100); // Western hemisphere — always negative
-
-        // Validate: must fall within reasonable US/territory bounds
-        // Lat 15°N–75°N, Lon 50°W–180°W
-        if (lat < 15 || lat > 75)     continue;
-        if (lon > -50 || lon < -180)  continue;
-
-        coords.push([lon, lat]); // GeoJSON uses [longitude, latitude]
-    }
-
+    const nums = block[1].replace(/\s+/g, ' ').trim().split(' ').filter(n => /^\d{8}$/.test(n));
+    if (nums.length < 3) return null;
+    const coords = nums.map(n => {
+        const lat = parseInt(n.substring(0, 4)) / 100;
+        const lon = -(parseInt(n.substring(4, 8)) / 100);
+        return [lon, lat]; // GeoJSON [lon, lat]
+    }).filter(([lon, lat]) => lat >= 15 && lat <= 75 && lon >= -180 && lon <= -50);
     if (coords.length < 3) return null;
-    coords.push(coords[0]); // Close the polygon ring
+    // Close the polygon
+    coords.push(coords[0]);
     return { type: 'Polygon', coordinates: [coords] };
 }
 
