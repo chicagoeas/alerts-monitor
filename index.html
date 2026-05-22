@@ -31,6 +31,7 @@
             background-attachment: fixed;
             color: white;
             overscroll-behavior-y: contain;
+            overflow: hidden; /* Prevent scrollbar from alert banner or legend overflow */
         }
         #header { padding: 14px 20px 10px; display: flex; justify-content: space-between; align-items: center; z-index: 200; position: relative; }
         #header h1 { margin: 0; font-weight: 800; font-size: 1.55em; color: var(--accent); letter-spacing: -0.5px; line-height: 1; }
@@ -391,7 +392,11 @@ let renderGeneration  = 0;   // increment on every renderAlertsOnMap call
 const openAlertIds    = new Set();   // NWS alert IDs whose full-text panel is open
 const openAlertScrolls = {};         // nwsId -> scrollTop position within text box
 let previousAlertIds  = new Set();   // alert IDs from the previous fetch cycle
-let newAlertIds       = new Set();   // IDs that are new since last fetch (drives flash)
+let newAlertIds       = new Set();   // IDs that are new since last fetch (messageType===Alert only)
+
+// Flash tracking: Maps alertId -> timestamp when flash started.
+// Flash lasts exactly 15 seconds regardless of re-renders.
+const flashStartTimes = new Map();
 
 // Caches
 const zoneGeoCache   = {};  // ugcCode -> GeoJSON geometry | null
@@ -400,8 +405,6 @@ let   geocodeQueue   = [];
 let   geocodeRunning = false;
 
 // ── Zone-fetch concurrency semaphore ─────────────────────────────────────────
-// Limits simultaneous NWS zone API calls to avoid overwhelming the API.
-// The cache means already-fetched zones are returned instantly.
 const _zSem = { slots: 8, queue: [] };
 function _zRelease() {
     if (_zSem.queue.length > 0) {
@@ -486,7 +489,6 @@ const ALERT_COLORS = {
     'Beach Hazards Statement':     '#40E0D0',
     'Gale Watch':                  '#FFC0CB',
     'Fire Weather Watch':          '#FFDEAD',
-    // Civil alerts
     'Civil Emergency Message':     '#FFB6C1',
     'Civil Danger Warning':        '#FFB6C1',
     'Law Enforcement Warning':     '#C0C0C0',
@@ -501,11 +503,9 @@ const ALERT_COLORS = {
     'Fire Warning':                '#A0522D',
     'Volcano Warning':             '#2F4F4F',
     'Shelter In Place Warning':    '#FA8072',
-    // Normally transparent alerts have been swiched to the "Test" color
     'Child Abduction Emergency':   '#F0FFFF',
     'Blue Alert':                  '#F0FFFF',
     'Test':                        '#F0FFFF',
-    // Back to normal alerts
     'Extreme Fire Danger':         '#E9967A',
     'Air Stagnation Advisory':     '#808080',
     'Tsunami Warning':             '#FD6347',
@@ -590,11 +590,10 @@ function isNWROffline(station) {
 function isNWRDegraded(station) {
     return (station.info || '').trim().toLowerCase() === 'degraded';
 }
-// Returns the dot color for a station on any map layer
 function nwrStationColor(station) {
-    if (isNWROffline(station))  return '#ff1744';   // red
-    if (isNWRDegraded(station)) return '#ffd54f';   // yellow
-    return '#00e676';                               // green
+    if (isNWROffline(station))  return '#ff1744';
+    if (isNWRDegraded(station)) return '#ffd54f';
+    return '#00e676';
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -605,10 +604,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initOutlookMap();
     loadNWRDatabase();
     loadAlerts();
-    // loadSPCOutlook deferred to first tab open — map must have non-zero size
     updateSPCCountdown();
     setInterval(loadAlerts, 8000);
-    setInterval(updateSPCCountdown, 1000);  // tick every second for accurate countdown
+    setInterval(updateSPCCountdown, 1000);
     setInterval(() => {
         if (radarMapState === 1 && radarLayerMap) {
             mapInstance.removeLayer(radarLayerMap);
@@ -631,7 +629,6 @@ function switchTab(name, navEl) {
     if (name === 'nwr' && nwrCoverageMap) {
         setTimeout(() => {
             nwrCoverageMap.invalidateSize();
-            // Re-render and fit to currently filtered stations
             const q     = (document.getElementById('nwr-search-input')?.value || '').toLowerCase().trim();
             const state = document.getElementById('nwr-state-filter')?.value || '';
             if (q || state) {
@@ -652,8 +649,6 @@ function switchTab(name, navEl) {
         setTimeout(() => {
             outlookMap.invalidateSize();
             outlookMap.fitBounds(CONUS_BOUNDS);
-            // Load outlook data the first time the tab becomes visible
-            // (loading while hidden causes Leaflet to render at zero-size)
             if (!outlookTabOpened) {
                 outlookTabOpened = true;
                 loadSPCOutlook(activeSPCDay);
@@ -661,11 +656,10 @@ function switchTab(name, navEl) {
             }
         }, 100);
     }
-    // NOTE: we do NOT clear openAlertIds on tab switch so reading state is preserved
 }
 
 // ═══════════════════════════════════════════════════════════
-// POINT-IN-POLYGON (ray-casting) for overlapping alert detection
+// POINT-IN-POLYGON (ray-casting)
 // ═══════════════════════════════════════════════════════════
 function _raycastRing(x, y, ring) {
     let inside = false;
@@ -700,14 +694,12 @@ function initMap() {
     alertLayer = L.layerGroup().addTo(mapInstance);
     spcLayer   = L.layerGroup().addTo(mapInstance);
 
-    // Map-level click: find ALL alert polygons containing the click point (handles overlaps)
     mapInstance.on('click', function(e) {
         if (!alertLayerOn) return;
         const latlng = e.latlng;
         const matches = activeAlerts.filter(f => f.geometry && pointInGeoJSON(latlng, f.geometry));
         if (!matches.length) return;
         if (matches.length === 1) { handleAlertClick(matches[0]); return; }
-        // Multiple overlapping alerts — show a selection popup
         const items = matches.map((f, i) => {
             const ev    = f.properties?.event || 'Alert';
             const area  = (f.properties?.areaDesc || '').split(';')[0].trim();
@@ -732,9 +724,8 @@ function initMap() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// OUTLOOK MAP — interactive Leaflet map zoomed to CONUS
+// OUTLOOK MAP
 // ═══════════════════════════════════════════════════════════
-// CONUS bounds for the SPC outlook map
 const CONUS_BOUNDS = [[23.0, -125.0], [50.0, -65.0]];
 
 function initOutlookMap() {
@@ -746,7 +737,9 @@ function initOutlookMap() {
     outlookLayer = L.layerGroup().addTo(outlookMap);
 }
 
-function loadSPCOutlook(day) {
+// Load SPC outlook with retry — resets outlookTabOpened on failure so
+// the next tab open will try again instead of permanently showing nothing.
+async function loadSPCOutlook(day) {
     activeSPCDay = day;
     document.getElementById('outlook-label').textContent = `Day ${day} Convective Outlook`;
     updateSPCCountdown();
@@ -757,14 +750,18 @@ function loadSPCOutlook(day) {
 
     const url = `https://www.spc.noaa.gov/products/outlook/day${day}otlk_cat.lyr.geojson`;
 
-    fetch(url)
-        .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(data => {
+    const MAX_TRIES = 3;
+    let lastErr = null;
+    for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 1500 * attempt));
+        try {
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(r.status);
+            const data = await r.json();
             loadingEl.style.display = 'none';
             const features = data.features || [];
-            if (!features.length) { showOutlookFallbackNote(day); return; }
+            if (!features.length) { showOutlookFallbackNote(day); outlookMap.fitBounds(CONUS_BOUNDS); return; }
 
-            // Draw lower risk categories first so higher-risk draw on top
             const sorted = [...features].sort((a, b) => {
                 const aLabel = getOutlookLabel(a);
                 const bLabel = getOutlookLabel(b);
@@ -786,14 +783,17 @@ function loadSPCOutlook(day) {
                 } catch(e) {}
             });
 
-            // Always reset view to CONUS after loading — don't zoom into Missouri
             outlookMap.fitBounds(CONUS_BOUNDS);
-        })
-        .catch(() => {
-            loadingEl.style.display = 'none';
-            showOutlookFallbackNote(day);
-            outlookMap.fitBounds(CONUS_BOUNDS);
-        });
+            return; // success
+        } catch(e) {
+            lastErr = e;
+        }
+    }
+    // All retries failed
+    loadingEl.style.display = 'none';
+    outlookTabOpened = false; // allow retry next time the tab is opened
+    showOutlookFallbackNote(day);
+    outlookMap.fitBounds(CONUS_BOUNDS);
 }
 
 function getOutlookLabel(feature) {
@@ -824,13 +824,10 @@ function switchOutlookDay(day, btn) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// SPC COUNTDOWN — per-day accurate issuance schedule (UTC)
-// D1: 0100, 0600, 1300, 1630, 2000 UTC
-// D2: 0600, 1730 UTC
-// D3: 0730 UTC
+// SPC COUNTDOWN
 // ═══════════════════════════════════════════════════════════
 const SPC_ISSUANCE_UTC = {
-    1: [1*60, 6*60, 13*60, 16*60+30, 20*60],        // minutes past midnight UTC
+    1: [1*60, 6*60, 13*60, 16*60+30, 20*60],
     2: [6*60, 17*60+30],
     3: [7*60+30],
 };
@@ -844,12 +841,10 @@ function updateSPCCountdown() {
 
     const schedule = SPC_ISSUANCE_UTC[activeSPCDay] || SPC_ISSUANCE_UTC[1];
 
-    // Find next issuance after current UTC time (in minutes)
     let nextMin = null;
     for (const t of schedule) {
         if (t > nowMin) { nextMin = t; break; }
     }
-    // If none found today, use first issuance of next day
     if (nextMin === null) nextMin = schedule[0] + 24 * 60;
 
     const diffSec  = (nextMin - nowMin) * 60 - nowSec;
@@ -857,7 +852,6 @@ function updateSPCCountdown() {
     const m  = Math.floor((diffSec % 3600) / 60);
     const s  = diffSec % 60;
 
-    // Compute the actual clock time of next issuance
     const targetUtcMin = (nextMin % (24 * 60));
     const tH = Math.floor(targetUtcMin / 60);
     const tM = targetUtcMin % 60;
@@ -869,7 +863,7 @@ function updateSPCCountdown() {
     el.textContent = `D${activeSPCDay} next issuance: ${h}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s · ${localStr}`;
 }
 
-// ═════════════════  �═════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════
 // NWR DATABASE + COVERAGE MAP
 // ═══════════════════════════════════════════════════════════
 async function loadNWRDatabase() {
@@ -1031,20 +1025,21 @@ function filterNWRList() {
         return matchQ && matchSt;
     });
     renderNWRList(filtered);
-    // Update the coverage map to show only matching stations
     renderNWRCoverageMap(filtered);
-    // If there's a filter, fit the map to the matching stations
     if (q || state) fitNWRCoverageMapToStations(filtered);
 }
 
 function fitNWRCoverageMapToStations(stations) {
     if (!nwrCoverageMap || !stations.length) return;
+    // Fix half-white map: invalidateSize ensures Leaflet knows the container dimensions
+    nwrCoverageMap.invalidateSize();
     const coords = stations.map(s => stationCoords(s)).filter(Boolean);
     if (!coords.length) return;
     try {
         if (coords.length === 1) {
-            // Single station — setView to avoid zooming to maxZoom on a zero-size bounds
             nwrCoverageMap.setView(coords[0], 7);
+            // Force tile refresh after setView as well
+            setTimeout(() => nwrCoverageMap.invalidateSize(), 100);
             return;
         }
         const bounds = L.latLngBounds(coords);
@@ -1158,12 +1153,27 @@ async function loadAlerts() {
                    evtLower !== 'rwt';
         });
 
-        // Track which alerts are brand-new this cycle (drives flash animation)
+        // Track which alerts are brand-new this cycle AND have messageType "Alert" (not "Update")
         const currentIds = new Set(activeAlerts.map(a => a.properties?.id).filter(Boolean));
         if (previousAlertIds.size > 0) {
-            newAlertIds = new Set([...currentIds].filter(id => !previousAlertIds.has(id)));
+            newAlertIds = new Set([...currentIds].filter(id => {
+                if (previousAlertIds.has(id)) return false;
+                // Only flash for genuinely new alerts, not updates/cancellations
+                const alert = activeAlerts.find(a => a.properties?.id === id);
+                return alert?.properties?.messageType === 'Alert';
+            }));
+            // Register flash start time for each newly detected alert
+            newAlertIds.forEach(id => {
+                if (!flashStartTimes.has(id)) {
+                    flashStartTimes.set(id, Date.now());
+                }
+            });
         } else {
             newAlertIds = new Set(); // first load — don't flash everything
+        }
+        // Clean up flash entries that have expired (> 15 seconds old)
+        for (const [id, startTime] of flashStartTimes.entries()) {
+            if (Date.now() - startTime > 15000) flashStartTimes.delete(id);
         }
         previousAlertIds = currentIds;
 
@@ -1220,10 +1230,8 @@ function ugcToZoneUrl(code) {
 async function fetchZoneGeom(code) {
     if (Object.prototype.hasOwnProperty.call(zoneGeoCache, code)) return zoneGeoCache[code];
     const t = code.charAt(2).toUpperCase();
-    // Build a list of URLs to try in order
     const urls = [ugcToZoneUrl(code)];
     if (t === 'Z') {
-        // Z codes may exist as forecast OR public zones; try both
         urls.push(`https://api.weather.gov/zones/public/${code}`);
     }
     try {
@@ -1235,9 +1243,8 @@ async function fetchZoneGeom(code) {
                 zoneGeoCache[code] = geo;
                 return geo;
             }
-            if (res.status !== 404) break; // Only retry on 404 (zone-not-found), not other errors
+            if (res.status !== 404) break;
         }
-        // Last resort: search API accepts any zone type
         const searchRes = await fetch(
             `https://api.weather.gov/zones?id=${code}`,
             { headers: NWS_HEADERS }
@@ -1271,7 +1278,7 @@ function geomCentroid(geo) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// BEST COORDS (centroid fallback for NWR matching only)
+// BEST COORDS
 // ═══════════════════════════════════════════════════════════
 function getBestCoords(feature) {
     const geo   = feature.geometry;
@@ -1297,10 +1304,6 @@ function getBestCoords(feature) {
 
 // ═══════════════════════════════════════════════════════════
 // RENDER ALERTS ON MAP
-// Polygon mode  → only alerts with polygon geometry, drawn as polygons
-// All mode      → polygon alerts as polygons + non-polygon alerts as
-//                 actual county/zone polygons fetched from NWS zones API
-//                 NO centroid dots — only real county/zone polygons
 // ═══════════════════════════════════════════════════════════
 function renderAlertsOnMap() {
     const gen = ++renderGeneration;
@@ -1310,9 +1313,12 @@ function renderAlertsOnMap() {
     if (mapMode === 'polygons') {
         activeAlerts.forEach(feature => {
             if (!feature.geometry) return;
-            const event  = feature.properties.event || 'Alert';
-            const color  = alertColor(event);
-            const isNew  = feature.properties?.id && newAlertIds.has(feature.properties.id);
+            const event   = feature.properties.event || 'Alert';
+            const color   = alertColor(event);
+            const alertId = feature.properties?.id;
+            const flashRemaining = alertId && flashStartTimes.has(alertId)
+                ? Math.max(0, 15000 - (Date.now() - flashStartTimes.get(alertId)))
+                : 0;
             try {
                 const poly = L.geoJSON(feature.geometry, {
                     style: { color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.18 }
@@ -1322,16 +1328,18 @@ function renderAlertsOnMap() {
                     { sticky: true, direction: 'top' }
                 );
                 poly.addTo(alertLayer);
-                if (isNew) flashAlertLayer(poly, color, 2);
+                if (flashRemaining > 0) flashAlertLayer(poly, color, 2, flashRemaining);
             } catch(e) {}
         });
     } else {
-        // "All" mode — draw everything as actual polygons; no dots
         activeAlerts.forEach(feature => {
             const props = feature.properties || {};
             const event = props.event || 'Alert';
             const color = alertColor(event);
-            const isNew = props.id && newAlertIds.has(props.id);
+            const alertId = props.id;
+            const flashRemaining = alertId && flashStartTimes.has(alertId)
+                ? Math.max(0, 15000 - (Date.now() - flashStartTimes.get(alertId)))
+                : 0;
 
             if (feature.geometry) {
                 try {
@@ -1343,24 +1351,27 @@ function renderAlertsOnMap() {
                         { sticky: true, direction: 'top' }
                     );
                     poly.addTo(alertLayer);
-                    if (isNew) flashAlertLayer(poly, color, 2);
+                    if (flashRemaining > 0) flashAlertLayer(poly, color, 2, flashRemaining);
                 } catch(e) {}
             } else {
                 const ugcCodes = props.geocode?.UGC || [];
                 if (ugcCodes.length > 0) {
-                    renderAlertZones(feature, ugcCodes, color, gen, isNew);
+                    renderAlertZones(feature, ugcCodes, color, gen, flashRemaining);
                 }
             }
         });
     }
 }
 
-// Flash a Leaflet GeoJSON layer's border weight for ~15s to signal a new alert
-function flashAlertLayer(leafletLayer, color, baseWeight) {
+// Flash a Leaflet GeoJSON layer for a specific duration.
+// durationMs defaults to 15000 (15 seconds). Pass remaining time on re-render
+// so the flash ends at the correct absolute time regardless of re-renders.
+function flashAlertLayer(leafletLayer, color, baseWeight, durationMs = 15000) {
+    const totalTicks = Math.ceil(durationMs / 500);
     let cnt = 0;
     const iv = setInterval(() => {
         cnt++;
-        if (cnt >= 30) {
+        if (cnt >= totalTicks) {
             clearInterval(iv);
             try { leafletLayer.setStyle({ weight: baseWeight, opacity: 0.9 }); } catch {}
             return;
@@ -1371,15 +1382,13 @@ function flashAlertLayer(leafletLayer, color, baseWeight) {
                 opacity: cnt % 2 === 0 ? 0.85 : 1
             });
         } catch { clearInterval(iv); }
-    }, 500); // 30 × 500ms = 15s
+    }, 500);
 }
 
-async function renderAlertZones(feature, ugcCodes, color, gen, isNew = false) {
+async function renderAlertZones(feature, ugcCodes, color, gen, flashRemainingMs = 0) {
     const props = feature.properties || {};
     const event = props.event || 'Alert';
-    // Use queued fetcher to limit concurrency and avoid rate-limiting
     const geos  = await Promise.all(ugcCodes.map(code => fetchZoneGeomQueued(code)));
-    // If a newer render has started, discard results to avoid ghost polygons
     if (gen !== renderGeneration) return;
     geos.forEach(geo => {
         if (!geo) return;
@@ -1387,8 +1396,6 @@ async function renderAlertZones(feature, ugcCodes, color, gen, isNew = false) {
             const layer = L.geoJSON(geo, {
                 style: { color, weight: 1.5, opacity: 0.9, fillColor: color, fillOpacity: 0.22, dashArray: '5 3' }
             });
-            // Zone polygons use per-layer click with stopPropagation so the map-level PIP handler
-            // (which only tests features with direct geometry) doesn't also fire.
             layer.on('click', (e) => {
                 L.DomEvent.stopPropagation(e);
                 handleAlertClick(feature);
@@ -1398,10 +1405,9 @@ async function renderAlertZones(feature, ugcCodes, color, gen, isNew = false) {
                 { sticky: true, direction: 'top' }
             );
             layer.addTo(alertLayer);
-            if (isNew) flashAlertLayer(layer, color, 1.5);
+            if (flashRemainingMs > 0) flashAlertLayer(layer, color, 1.5, flashRemainingMs);
         } catch(e) {}
     });
-    // No centroid dot fallback as requested — if all zone fetches failed, silently skip
 }
 
 function toggleMapMode(btn) {
@@ -1416,8 +1422,7 @@ function toggleMapMode(btn) {
 }
 
 // ═══════════════════════════════════════════════════════════
-// NWR MATCHING — works for polygon AND non-polygon alerts
-// Offline stations are excluded from matching results
+// NWR MATCHING
 // ═══════════════════════════════════════════════════════════
 function samplePolygonPoints(geometry) {
     const points = [];
@@ -1483,7 +1488,6 @@ async function handleAlertClick(feature) {
 
     const matched = [];
     for (const tx of transmitters) {
-        // Exclude offline stations from NWR panel results
         const station = nwrDatabase.find(s => s.callsign.toUpperCase() === tx && !isNWROffline(s));
         if (station && !matched.find(m => m.callsign === station.callsign)) matched.push(station);
     }
@@ -1495,27 +1499,22 @@ function viewFullAlert() {
     closeNWRPanel();
     const feature = nwrPanelFeature;
 
-    // Reset filter (chips have no data-key; select first chip = "All")
     alertFilterKey = 'all';
     const chips = document.querySelectorAll('.filter-chip');
     chips.forEach((c, i) => c.classList.toggle('active', i === 0));
 
-    // Clear search so the card is guaranteed visible
     const searchEl = document.getElementById('alerts-search-input');
     if (searchEl) searchEl.value = '';
 
-    // Re-render with no filter BEFORE switching tab so the card exists in the DOM
     renderAlertsList();
 
     switchTab('alerts', document.getElementById('nav-alerts'));
 
-    // Retry scroll — card must be in DOM and the tab container must be visible
     let tries = 0;
     function tryScroll() {
         if (scrollToAlertFeature(feature)) return;
         if (++tries < 20) setTimeout(tryScroll, 60);
     }
-    // First attempt after DOM paint + tab animation
     requestAnimationFrame(() => setTimeout(tryScroll, 80));
 }
 
@@ -1583,11 +1582,10 @@ function renderNWRPanel(stations, event, areaDesc) {
     }).join('');
 }
 
-// ════════════════════════════════════════════════════���══════
-// ALERTS LIST — preserves open/scroll state across refreshes
+// ═══════════════════════════════════════════════════════════
+// ALERTS LIST
 // ═══════════════════════════════════════════════════════════
 function renderAlertsList() {
-    // Before re-rendering, snapshot scroll positions of any open text boxes
     document.querySelectorAll('.alert-full-text').forEach(el => {
         const nwsId = el.closest('.alert-card-full')?.dataset?.nwsId;
         if (nwsId && el.style.display === 'block') {
@@ -1615,6 +1613,7 @@ function renderAlertsList() {
         list.innerHTML = '<div style="text-align:center;padding:40px;color:#667;font-size:0.85em;">No alerts matching this filter.</div>';
         return;
     }
+    const now = Date.now();
     list.innerHTML = filtered.map(a => {
         const realIdx = activeAlerts.indexOf(a);
         const p       = a.properties || {};
@@ -1626,7 +1625,8 @@ function renderAlertsList() {
         const issued   = issuedAt ? new Date(issuedAt).toLocaleString() : null;
         const canMap  = !!a.geometry || (p.geocode?.UGC?.length > 0);
         const isOpen  = openAlertIds.has(nwsId);
-        const isNew   = p.id && newAlertIds.has(p.id);
+        // Use flashStartTimes so flash persists across re-renders for exactly 15s
+        const isNew   = p.id && flashStartTimes.has(p.id) && (now - flashStartTimes.get(p.id)) < 15000;
         return `
         <div class="alert-card-full${isNew ? ' alert-new-flash' : ''}" id="alert-card-${realIdx}" data-nws-id="${nwsId}" style="border-left-color:${color};">
             <div class="event-name" style="color:${color};">${event}${isNew ? '<span class="alert-new-badge">NEW</span>' : ''}</div>
@@ -1648,7 +1648,6 @@ function renderAlertsList() {
         </div>`;
     }).join('');
 
-    // Restore scroll positions for re-opened text boxes
     requestAnimationFrame(() => {
         document.querySelectorAll('.alert-full-text').forEach(el => {
             const nwsId = el.closest('.alert-card-full')?.dataset?.nwsId;
@@ -1668,12 +1667,10 @@ function toggleAlertText(btn) {
         text.style.display = 'block';
         btn.textContent = '▲ Hide Text';
         if (nwsId) openAlertIds.add(nwsId);
-        // Restore scroll position if we have one saved
         if (nwsId && openAlertScrolls[nwsId] != null) {
             requestAnimationFrame(() => { text.scrollTop = openAlertScrolls[nwsId]; });
         }
     } else {
-        // Save scroll position before closing
         if (nwsId) openAlertScrolls[nwsId] = text.scrollTop;
         text.style.display = 'none';
         btn.textContent = '▼ Full Text';
@@ -1681,7 +1678,6 @@ function toggleAlertText(btn) {
     }
 }
 
-// Save scroll as user scrolls (so it's captured even if they don't close)
 document.addEventListener('scroll', e => {
     if (e.target && e.target.classList && e.target.classList.contains('alert-full-text')) {
         const nwsId = e.target.closest('.alert-card-full')?.dataset?.nwsId;
@@ -1751,8 +1747,6 @@ function cycleRadarOnMap(btn) {
 
 // ═══════════════════════════════════════════════════════════
 // SPC WATCHES/MDs ON MAP
-// Watches: sourced directly from activeAlerts
-// MDs:     fetched from IEM GeoJSON (has CORS headers)
 // ═══════════════════════════════════════════════════════════
 async function toggleSPCLayer(btn) {
     spcLayerOn = !spcLayerOn;
@@ -1760,7 +1754,6 @@ async function toggleSPCLayer(btn) {
     spcLayer.clearLayers();
     if (!spcLayerOn) return;
 
-    // ── WATCHES: filter from already-loaded alerts ──────────────────────
     const watchAlerts = activeAlerts.filter(a =>
         ['Tornado Watch', 'Severe Thunderstorm Watch'].some(ev =>
             (a.properties?.event || '').includes(ev)
@@ -1773,7 +1766,6 @@ async function toggleSPCLayer(btn) {
         const tooltip  = `<b>${event}</b><br><span style="font-size:0.85em;color:#aaa;">${feature.properties?.areaDesc || ''}</span>`;
         const watchStyle = { color, weight: 3, opacity: 1, fillColor: color, fillOpacity: 0.12, dashArray: '10 5' };
 
-        // Draw the overall watch-box polygon when present (shows immediately)
         if (feature.geometry) {
             try {
                 const layer = L.geoJSON(feature.geometry, { style: watchStyle });
@@ -1783,7 +1775,6 @@ async function toggleSPCLayer(btn) {
             } catch(e) {}
         }
 
-        // ALSO draw every UGC county/zone polygon for precise county-level coverage
         const ugcCodes = feature.properties?.geocode?.UGC || [];
         if (ugcCodes.length > 0) {
             const countyStyle = { color, weight: 2, opacity: 0.9, fillColor: color, fillOpacity: 0.18, dashArray: '7 4' };
@@ -1800,37 +1791,54 @@ async function toggleSPCLayer(btn) {
         }
     }
 
-    // ── MDs: fetch from IEM GeoJSON (CORS-enabled) ─────────────────────
     await drawMDsOnLayer(spcLayer);
 }
 
-// Parse SPC-format LAT...LON block into [lat, lon] pairs
-// Format: each coordinate is 8 digits = LLLL LLLL where first 4 = lat*100, last 4 = lon*100
+// ═══════════════════════════════════════════════════════════
+// SPC MD COORDINATE PARSER
+//
+// SPC LAT...LON format uses space-separated pairs:
+//   4-digit lat (e.g. 3607 = 36.07°N) followed by
+//   4 or 5-digit lon (e.g. 9793 = 97.93°W, 10233 = 102.33°W)
+//
+// The old code incorrectly filtered for 8-digit combined numbers,
+// which matched unrelated strings like dates (20241215) and
+// placed polygons in Spain/Africa. This version correctly parses
+// the standard paired format and validates coordinates.
+// ═══════════════════════════════════════════════════════════
 function parseSPCLatLon(text) {
     const block = text.match(/LAT\.\.\.LON\s+([\d\s]+?)(?=\n\n|\$\$|&&|TIME|VALID|$)/si);
     if (!block) return null;
-    const nums = block[1].replace(/\s+/g, ' ').trim().split(' ').filter(n => /^\d{8}$/.test(n));
-    if (nums.length < 3) return null;
-    const coords = nums.map(n => {
-        const lat = parseInt(n.substring(0, 4)) / 100;
-        const lon = -(parseInt(n.substring(4, 8)) / 100);
-        return [lon, lat]; // GeoJSON [lon, lat]
-    });
-    // Close the polygon
-    coords.push(coords[0]);
+
+    // Extract all 4-or-5-digit tokens (lat values are 4 digits, lon values are 4 or 5)
+    const tokens = block[1].replace(/\s+/g, ' ').trim().split(' ').filter(n => /^\d{4,5}$/.test(n));
+    if (tokens.length < 6) return null;
+
+    const coords = [];
+    for (let i = 0; i + 1 < tokens.length; i += 2) {
+        const latRaw = parseInt(tokens[i],     10);
+        const lonRaw = parseInt(tokens[i + 1], 10);
+        const lat = latRaw / 100;
+        const lon = -(lonRaw / 100); // Western hemisphere — always negative
+
+        // Validate: must fall within reasonable US/territory bounds
+        // Lat 15°N–75°N, Lon 50°W–180°W
+        if (lat < 15 || lat > 75)     continue;
+        if (lon > -50 || lon < -180)  continue;
+
+        coords.push([lon, lat]); // GeoJSON uses [longitude, latitude]
+    }
+
+    if (coords.length < 3) return null;
+    coords.push(coords[0]); // Close the polygon ring
     return { type: 'Polygon', coordinates: [coords] };
 }
 
 // ═══════════════════════════════════════════════════════════
-// SPC MDs — fetch directly from spc.noaa.gov (CORS: *)
-// 1. GET https://www.spc.noaa.gov/products/md/
-// 2. Parse <map name="mdimgmap"> → <area shape="poly" href="md####.html">
-// 3. For each MD href, GET that individual page
-// 4. Parse the LAT...LON block (SPC 8-digit format) using parseSPCLatLon
+// SPC MDs — fetch directly from spc.noaa.gov
 // ═══════════════════════════════════════════════════════════
 async function fetchSPCMDs() {
     try {
-        // Step 1 — listing page
         const ctrl1  = new AbortController();
         const timer1 = setTimeout(() => ctrl1.abort(), 10000);
         const listRes = await fetch('https://www.spc.noaa.gov/products/md/', { signal: ctrl1.signal });
@@ -1838,7 +1846,6 @@ async function fetchSPCMDs() {
         if (!listRes.ok) return [];
         const listHtml = await listRes.text();
 
-        // Step 2 — find every <area shape="poly" href="md####.html"> inside mdimgmap
         const mdNums = [];
         const areaRe = /<area[^>]+shape=["']?poly["']?[^>]*>/gi;
         let m;
@@ -1851,7 +1858,6 @@ async function fetchSPCMDs() {
         }
         if (!mdNums.length) return [];
 
-        // Step 3 — fetch each MD page and parse its LAT...LON block
         const features = await Promise.all(mdNums.map(async num => {
             const padded = String(num).padStart(4, '0');
             const url    = `https://www.spc.noaa.gov/products/md/md${padded}.html`;
@@ -1862,7 +1868,6 @@ async function fetchSPCMDs() {
                 clearTimeout(timer);
                 if (!r.ok) return null;
                 const html = await r.text();
-                // Product text is usually in a <pre> block; strip any inner HTML tags
                 const preM    = html.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
                 const product = preM
                     ? preM[1].replace(/<[^>]+>/g, '')
@@ -1931,7 +1936,6 @@ async function loadSPCWatches() {
         }).join('');
     }
 
-    // MDs — fetched directly from SPC (CORS: * so no proxy needed)
     const spcLink = `<div style="margin-top:6px;font-size:0.75em;"><a href="https://www.spc.noaa.gov/products/md/" target="_blank" style="color:var(--primary);">View all MDs on SPC ↗</a></div>`;
     mdEl.innerHTML = '<span style="color:#556;font-size:0.82em;">Loading MDs…</span>';
     let mdFeatures = null;
@@ -1957,7 +1961,7 @@ async function loadSPCWatches() {
 }
 
 // ═══════════════════════════════════════════════════════════
-// NWR ON MAIN MAP TOGGLE — offline stations shown red
+// NWR ON MAIN MAP TOGGLE
 // ═══════════════════════════════════════════════════════════
 function toggleNWROnMap(btn) {
     nwrMapLayerOn = !nwrMapLayerOn;
