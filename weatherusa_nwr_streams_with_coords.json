@@ -632,6 +632,30 @@
     "longitude": -97.0329
   },
   {
+    "callsign": "KXI71",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/46937",
+    "location": "Brookings, SD",
+    "latitude": 44.3113,
+    "longitude": -96.7983
+  },
+  {
+    "callsign": "WXM28",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/30502",
+    "location": "Sioux Falls, SD",
+    "latitude": 43.546,
+    "longitude": -96.7312
+  },
+  {
+    "callsign": "WXM25",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/25151",
+    "location": "Aberdeen, SD",
+    "latitude": 45.4647,
+    "longitude": -98.4864
+  },
+  {
     "callsign": "KZZ69",
     "info": "Listen",
     "stream_url": "https://radio.weatherusa.net/NWR/KZZ69.mp3",
@@ -838,6 +862,22 @@
     "location": "Tulsa, OK",
     "latitude": 36.154,
     "longitude": -95.9928
+  },
+  {
+    "callsign": "WXL98",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/43350",
+    "location": "Roseburg, OR",
+    "latitude": 43.213,
+    "longitude": -123.3413
+  },
+  {
+    "callsign": "WZ2559",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/41784",
+    "location": "Enterprise, OR",
+    "latitude": 45.4262,
+    "longitude": -117.2787
   },
   {
     "callsign": "WXL39",
@@ -1135,6 +1175,14 @@
     "latitude": 38.6637,
     "longitude": -80.7093
   },
+  {
+    "callsign": "WNG563",
+    "info": "Listen",
+    "stream_url": "https://broadcastify.cdnstream1.com/32110",
+    "location": "Cody, WY",
+    "latitude": 44.5263,
+    "longitude": -109.0565
+  }
   {
     "callsign": "WXM61",
     "info": "Listen",
