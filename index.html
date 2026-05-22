@@ -24,14 +24,17 @@
             --bg:      #07131d;
         }
         *, *::before, *::after { box-sizing: border-box; }
-        html, body {
-            margin: 0; padding: 0; height: 100%;
+        html { height: 100%; }
+        body {
+            margin: 0; padding: 0;
+            /* Flex column so header + banner + app always fill exactly 100dvh with no overflow */
+            display: flex; flex-direction: column; height: 100dvh;
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: linear-gradient(180deg, var(--bg) 0%, #112233 100%);
             background-attachment: fixed;
             color: white;
             overscroll-behavior-y: contain;
-            overflow: hidden; /* Prevent scrollbar from alert banner or legend overflow */
+            overflow: hidden;
         }
         #header { padding: 14px 20px 10px; display: flex; justify-content: space-between; align-items: center; z-index: 200; position: relative; }
         #header h1 { margin: 0; font-weight: 800; font-size: 1.55em; color: var(--accent); letter-spacing: -0.5px; line-height: 1; }
@@ -41,7 +44,7 @@
         #alert-banner { display: none; background: var(--danger); color: white; padding: 12px 20px; font-weight: bold; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.2); text-align: center; font-size: 0.88em; letter-spacing: 0.5px; box-shadow: 0 4px 15px rgba(255,23,68,0.4); z-index: 190; position: relative; }
         @keyframes emergPulse { 0% { background-color: #b71c1c; } 50% { background-color: #ff1744; } 100% { background-color: #b71c1c; } }
         #alert-banner.emergency { animation: emergPulse 1.5s infinite; border: 2px solid white; }
-        #app { display: flex; flex-direction: column; height: calc(100dvh - 60px); }
+        #app { display: flex; flex-direction: column; flex: 1; min-height: 0; }
         .tab-content { display: none; flex: 1; overflow: hidden; flex-direction: column; }
         .tab-content.active { display: flex; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
@@ -1016,7 +1019,12 @@ function populateStateFilter() {
     });
 }
 
+let _nwrFilterTimer = null;
 function filterNWRList() {
+    clearTimeout(_nwrFilterTimer);
+    _nwrFilterTimer = setTimeout(_applyNWRFilter, 120);
+}
+function _applyNWRFilter() {
     const q     = document.getElementById('nwr-search-input').value.toLowerCase().trim();
     const state = document.getElementById('nwr-state-filter').value;
     const filtered = nwrDatabase.filter(s => {
@@ -1031,20 +1039,25 @@ function filterNWRList() {
 
 function fitNWRCoverageMapToStations(stations) {
     if (!nwrCoverageMap || !stations.length) return;
-    // Fix half-white map: invalidateSize ensures Leaflet knows the container dimensions
-    nwrCoverageMap.invalidateSize();
     const coords = stations.map(s => stationCoords(s)).filter(Boolean);
     if (!coords.length) return;
-    try {
-        if (coords.length === 1) {
-            nwrCoverageMap.setView(coords[0], 7);
-            // Force tile refresh after setView as well
-            setTimeout(() => nwrCoverageMap.invalidateSize(), 100);
-            return;
-        }
-        const bounds = L.latLngBounds(coords);
-        if (bounds.isValid()) nwrCoverageMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 8 });
-    } catch(e) {}
+    // invalidateSize first so Leaflet knows the current container dimensions,
+    // then defer the view change so it runs after the current paint cycle —
+    // without this delay, fitBounds fires before Leaflet finishes processing
+    // the size update and the map goes blank on large result sets.
+    nwrCoverageMap.invalidateSize();
+    setTimeout(() => {
+        try {
+            if (coords.length === 1) {
+                nwrCoverageMap.setView(coords[0], 7);
+            } else {
+                const bounds = L.latLngBounds(coords);
+                if (bounds.isValid()) nwrCoverageMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 9 });
+            }
+            // Second invalidateSize after view change to ensure tiles load correctly
+            setTimeout(() => nwrCoverageMap.invalidateSize(), 150);
+        } catch(e) {}
+    }, 50);
 }
 
 function renderNWRList(stations) {
