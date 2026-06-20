@@ -120,8 +120,16 @@
     "longitude": -81.8723
   },
   {
+    "callsign": "WZ2531",
+    "info": "Listen",
+    "stream_url": "https://wxr.gwes-cdn.net/WZ2531",
+    "location": "Hialeah, FL (Spanish)",
+    "latitude": 25.8268,
+    "longitude": -80.2809
+  },
+  {
     "callsign": "KHB34",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://wxr.gwes-cdn.net/KHB34",
     "location": "Miami, FL",
     "latitude": 25.7617,
@@ -153,7 +161,7 @@
   },
   {
     "callsign": "WNG663",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://wxr.gwes-cdn.net/WNG663",
     "location": "Princeton, FL",
     "latitude": 25.5384,
@@ -601,7 +609,7 @@
   },
   {
     "callsign": "KDO89",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://wxradio.org/MO-StLouis-KDO89",
     "location": "St. Louis, MO",
     "latitude": 38.627,
@@ -713,7 +721,7 @@
   },
   {
     "callsign": "WWG20",
-    "info": "Offline",
+    "info": "Degraded",
     "stream_url": "https://radio.weatherusa.net/NWR/WWG20.mp3",
     "location": "Fernley, NV",
     "latitude": 39.608,
@@ -913,7 +921,7 @@
   },
   {
     "callsign": "WXL43",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://wxradio.org/PA-WilkesBarre-WXL43",
     "location": "Wilkes-Barre, PA",
     "latitude": 41.2459,
@@ -921,7 +929,7 @@
   },
   {
     "callsign": "WXJ21",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://wxradio.org/SC-Greenville-WXJ21",
     "location": "Greenville, SC",
     "latitude": 34.8526,
@@ -961,7 +969,7 @@
   },
   {
     "callsign": "WXK63",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://radio.weatherusa.net/NWR/WXK63.mp3",
     "location": "Shelbyville, TN",
     "latitude": 35.4834,
@@ -1145,7 +1153,7 @@
   },
   {
     "callsign": "KGG95",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://radio.weatherusa.net/NWR/KGG95.mp3",
     "location": "Winona, MN",
     "latitude": 44.0494,
@@ -1185,7 +1193,7 @@
   },
   {
     "callsign": "WXM61",
-    "info": "Offline",
+    "info": "Listen",
     "stream_url": "https://radio.weatherusa.net/NWR/WXM61.mp3",
     "location": "Lander, WY",
     "latitude": 42.833,
